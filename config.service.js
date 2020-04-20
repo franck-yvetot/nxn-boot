@@ -1,5 +1,6 @@
 const fs = require('fs');
 let debug= console;
+const yaml = require('js-yaml');
 
 /**
  * 
@@ -49,6 +50,9 @@ class configSce
                     foundPath = p;
                 }
             });
+
+            if(!this.dirPaths)
+                this.dirPaths = dirPaths;
         }
         
         if(!content)
@@ -57,7 +61,7 @@ class configSce
         if(!content)
             debug.log('boot with no config');        
 
-        if(path.endsWith("yaml"))
+        if(path.endsWith("yaml") || path.endsWith("yml"))
         {
             debug.log('YAML boot config : '+foundPath);
             config = yaml.safeLoad(content);
