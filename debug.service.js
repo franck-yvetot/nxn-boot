@@ -8,6 +8,7 @@ class DebugService
     constructor(cat) {
         this.cat = cat;
         this.debug = debug(this.cat);
+        this.error = debug(this.cat+':error');
     }
 
     init(config,ctxt) {
@@ -23,7 +24,7 @@ class DebugService
         this.debug(msg);
     }
     error(msg) {
-        this.debug("ERROR :" +msg);
+        this.error("ERROR :" +msg);
     }
 }
 
