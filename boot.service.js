@@ -1,3 +1,4 @@
+require('module-alias/register');
 const config = require('./config.service');
 
 const fs = require('fs');
@@ -254,23 +255,28 @@ class bootSce
             debug.log('loading '+ type +' : '+path);
             const comp = require(path);
             
+            let res;
             if(comp[fun])
             {
-                const res = comp[fun](compConf,self.ctxt);
+                res = comp[fun](compConf,self.ctxt);
             }
             else if(comp.prototype[fun])
             {
-                const res = comp.prototype[fun](compConf,self.ctxt);
+                res = comp.prototype[fun](compConf,self.ctxt);
             }
 
             // registers to global process
             self._registerComponent(id,section,comp);
 
+            // if async, wait for the end of the service
+            if(res && res.then)
+                await res;
+
             debug.log('Policy loaded: '+path);
             return true;
         } 
         catch(err) {
-            debug.error('Error loading compnent : '+path+' '+err);
+            debug.error('Error loading compnent : '+path+' '+(err.stack||err));
             return false;
         }
     }
