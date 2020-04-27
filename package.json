@@ -1,0 +1,19 @@
+{
+  "name": "boot",
+  "version": "1.0.0",
+  "description": "boot framework, config based and services, application components, API/routes, middleware, code gen.",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/franck-yvetot/nxn-boot.git"
+  },
+  "author": "Frannck Yvetot",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/franck-yvetot/nxn-boot/issues"
+  },
+  "homepage": "https://github.com/franck-yvetot/nxn-boot#readme"
+}
