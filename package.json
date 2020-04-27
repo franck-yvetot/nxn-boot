@@ -15,5 +15,11 @@
   "bugs": {
     "url": "https://github.com/franck-yvetot/nxn-boot/issues"
   },
-  "homepage": "https://github.com/franck-yvetot/nxn-boot#readme"
+  "homepage": "https://github.com/franck-yvetot/nxn-boot#readme",
+  "dependencies": {
+    "debug": "^4.1.1",
+    "express": "^4.17.1",
+    "js-yaml": "^3.13.1",
+    "module-alias": "^2.2.2"
+  }
 }

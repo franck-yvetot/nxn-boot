@@ -1,8 +1,8 @@
 
 require('module-alias/register');
 
-let configSce = require("nxn-boot/config.service");
-let bootSce = require("nxn-boot/boot.service");
+let configSce = require("./config.service");
+let bootSce = require("./boot.service");
 
 /*
 const express = require("express");
