@@ -1,5 +1,5 @@
 {
-  "name": "boot",
+  "name": "@nxn/boot",
   "version": "1.0.0",
   "description": "boot framework, config based and services, application components, API/routes, middleware, code gen.",
   "main": "index.js",
