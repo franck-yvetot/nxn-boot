@@ -1,0 +1,63 @@
+{
+    "middleware" : 
+    {
+        "defaultPath":"@nxn/boot/middleware/$id",
+        "load" : "ENV,debug,express,CORS2,JSON",
+
+        "configuration" : {
+            "express":{
+                "port":3000,
+                "message":"Express server run on port"
+            },
+
+            "cors2" : {
+                "verbs": "GET,POST,PUT,DELETE"
+            },
+
+            "env" : {
+            },
+
+            "debug" : {
+                "path" : "nxn-boot/$id.service",
+                "DEBUG": "*",
+                "DEBUG_COLORS":1
+            }
+        }
+    },
+
+    "services" : {
+        "defaultPath":"@nxn/modules/$id",
+        
+        "load" : "",
+
+        "configuration" : {
+            "db":{
+                "path" : "@nxn/modules/$id.service",
+                "dbType" : "mongo"
+            },
+
+            "bigquery" : {
+                "path" : "@nxn/modules/google/$id.service",
+                "cloud_project_id": "mygcp-project",
+                "keyPath":".keys.json"
+            }
+        }
+    },
+    
+    "routes" : {
+        "defaultPath":"$id/routes/$id.routes",
+        "load" : "myapi",
+
+        "configuration" : {
+        
+            "myapi" : {
+                "url"  : "/api/myapi",
+                "path" : "mayapp/routes/myapi.routes"
+            }
+        }            
+    },
+
+    "run" : {
+        "load" : "express"
+    }
+}
