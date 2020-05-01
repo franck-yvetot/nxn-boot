@@ -11,6 +11,8 @@ class bootSce
         this.config = {};
         this.bootDir = '';
         this.ctxt = {};
+        this.policies={};
+        this.components={};
     }
 
     runConfig(path,dirPaths,app=null,express=null,withModuleAlias=true)
@@ -207,7 +209,13 @@ class bootSce
 
     _getComponentConfig(id,config) {
         if(config[id])
+        {
+            this.policies[id] = config[id];
             return config[id];
+        }
+
+        if(this.policies[id])
+            return this.policies[id];
 
         return {};
     }
@@ -238,8 +246,9 @@ class bootSce
         return path;
     }
 
-    _registerComponent(id,type,comp) {
+    _registerComponent(id,type,comp,path) {
         process[type][id] = comp;
+        this.components[id] = {comp,path};
     }
 
     async _initComponent(id,path,compConf,type,section,fun="init") {
@@ -252,7 +261,15 @@ class bootSce
         try {
             // await fs.promises.access(path+'.js');
             debug.log('loading '+ type +' : '+path);
-            const comp = require(path);
+
+            // require component or reuse
+            let comp;
+            if(this.components[id]) {
+                comp = this.components[id].comp;
+                path = this.components[id].path;
+            }
+            else
+                comp = require(path);
             
             let res;
             if(comp[fun])
@@ -265,7 +282,7 @@ class bootSce
             }
 
             // registers to global process
-            self._registerComponent(id,section,comp);
+            self._registerComponent(id,section,comp,path);
 
             // if async, wait for the end of the service
             if(res && res.then)
