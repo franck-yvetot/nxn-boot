@@ -1,4 +1,3 @@
-require('module-alias/register');
 const config = require('./config.service');
 
 const fs = require('fs');

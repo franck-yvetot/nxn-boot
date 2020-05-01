@@ -1,6 +1,3 @@
-
-require('module-alias/register');
-
 let configSce = require("./config.service");
 let bootSce = require("./boot.service");
 

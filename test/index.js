@@ -1,8 +1,8 @@
 // module alias : allow access to applications services from config files
 // install : npm i --save module-alias
-require('module-alias/register');
+// require('module-alias/register');
 
-const {bootSce} = require("nxn-boot");
+const {bootSce} = require("@nxn/boot");
 
 // init config reader from client data
 var myArgs = process.argv.slice(2);
