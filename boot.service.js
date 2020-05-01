@@ -1,6 +1,11 @@
-const config = require('./config.service');
+const config = require('@nxn/config');
 
 const fs = require('fs');
+/*
+var requireRoot = require('rfr');
+requireRoot.setRoot(process.cwd());
+*/
+
 // const debug = require("./debug.service")("BOOT");
 let debug= console;
 
@@ -40,7 +45,7 @@ class bootSce
         // security middleware
         this.initPolicies();
 
-        debug= require("./debug.service")("BOOT");
+        debug=require("@nxn/debug")("BOOT");
 
         // init services
         this.initServices();
@@ -269,7 +274,13 @@ class bootSce
                 path = this.components[id].path;
             }
             else
-                comp = require(path);
+            {
+                if(path.startsWith('applications'))
+                    //comp = requireRoot(path);
+                    comp = require(process.cwd()+'/'+path);
+                else
+                    comp = require(path);
+            }
             
             let res;
             if(comp[fun])

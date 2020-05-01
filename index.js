@@ -1,4 +1,4 @@
-let configSce = require("./config.service");
+let configSce = require("@nxn/config");
 let bootSce = require("./boot.service");
 
 /*

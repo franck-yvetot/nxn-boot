@@ -2,7 +2,7 @@
 // install : npm i --save module-alias
 // require('module-alias/register');
 
-const {bootSce} = require("@nxn/boot");
+const {bootSce} = require("../boot.service");
 
 // init config reader from client data
 var myArgs = process.argv.slice(2);

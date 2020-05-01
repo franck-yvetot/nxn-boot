@@ -17,13 +17,13 @@
   },
   "homepage": "https://github.com/franck-yvetot/nxn-boot#readme",
   "dependencies": {
+    "@nxn/config": "^1.0.0",
+    "@nxn/debug": "^1.0.1",
     "cors": "^2.8.5",
-    "debug": "^4.1.1",
     "dotenv": "^8.2.0",
     "dotenv-expand": "^5.1.0",
     "express": "^4.17.1",
     "express-fileupload": "^1.1.7-alpha.3",
-    "js-yaml": "^3.13.1",
     "module-alias": "^2.2.2",
     "nunjucks": "^3.2.1"
   }
