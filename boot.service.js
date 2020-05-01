@@ -256,11 +256,12 @@ class bootSce
         this.components[id] = {comp,path};
     }
 
-    _requireComp(id,path) {
+    _requireComp(id,path,compConf) {
 
         // require component or reuse
         let comp;
-        if(this.components[id] && (this.components[id].path==path)) {
+        // get previously loaded service if same path or no path
+        if(this.components[id] && (!compConf.path || this.components[id].path==compConf.path)) {
             comp = this.components[id].comp;
             path = this.components[id].path;
         }
@@ -290,7 +291,7 @@ class bootSce
             debug.log('loading '+ type +' : '+path);
 
             // require component or reuse
-            let comp = this._requireComp(id,path);
+            let comp = this._requireComp(id,path,compConf);
             
             let res;
             if(comp[fun])
@@ -337,7 +338,7 @@ class bootSce
 
             if(compConf['url'])
             {
-                const comp = this._requireComp(id,path);
+                const comp = this._requireComp(id,path,compConf);
                 let router;
 
 				if(!comp.post && !comp.get && comp.init)
