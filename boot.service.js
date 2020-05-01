@@ -256,6 +256,28 @@ class bootSce
         this.components[id] = {comp,path};
     }
 
+    _requireComp(id,path) {
+
+        // require component or reuse
+        let comp;
+        if(this.components[id] && (this.components[id].path==path)) {
+            comp = this.components[id].comp;
+            path = this.components[id].path;
+        }
+        else
+        {
+            if(path.startsWith('applications'))
+                //comp = requireRoot(path);
+                comp = require(process.cwd()+'/'+path);
+            else
+                comp = require(path);
+
+            this.components[id] = {comp,path};
+        }
+
+        return comp;
+    }
+
     async _initComponent(id,path,compConf,type,section,fun="init") {
         let self = this;
 
@@ -268,19 +290,7 @@ class bootSce
             debug.log('loading '+ type +' : '+path);
 
             // require component or reuse
-            let comp;
-            if(this.components[id]) {
-                comp = this.components[id].comp;
-                path = this.components[id].path;
-            }
-            else
-            {
-                if(path.startsWith('applications'))
-                    //comp = requireRoot(path);
-                    comp = require(process.cwd()+'/'+path);
-                else
-                    comp = require(path);
-            }
+            let comp = this._requireComp(id,path);
             
             let res;
             if(comp[fun])
@@ -327,11 +337,18 @@ class bootSce
 
             if(compConf['url'])
             {
-                const route = require(path);
-                self.ctxt.app.use(compConf['url'],route);
+                const comp = this._requireComp(id,path);
+                let router;
+
+				if(!comp.post && !comp.get && comp.init)
+					router = comp.init(compConf,self.ctxt.express,self.ctxt.app);				
+				else
+					router = comp;
+
+                self.ctxt.app.use(compConf['url'],router);
 
                 // registers to global process
-                self._registerComponent(id,section,route);
+                self._registerComponent(id,section,comp,path);
 
                 debug.log('Endpoint route loaded: '+compConf['url']+' -> '+path);
                 return true;
