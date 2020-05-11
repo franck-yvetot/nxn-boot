@@ -6,6 +6,8 @@ var requireRoot = require('rfr');
 requireRoot.setRoot(process.cwd());
 */
 
+const arraySce = require("@nxn/ext/array.service");
+
 // const debug = require("./debug.service")("BOOT");
 let debug= console;
 
@@ -31,7 +33,7 @@ class bootSce
         this.ctxt.config = this.config = config.loadConfig(path,dirPaths);
     }
 
-    initAll(app,express,withModuleAlias) {
+    async initAll(app,express,withModuleAlias) {
         if(express)
             this.ctxt.express = express;
 
@@ -48,10 +50,10 @@ class bootSce
         debug=require("@nxn/debug")("BOOT");
 
         // init services
-        this.initServices();
+        await this.initServices();
 
         // prepare routes
-        this.initRoutes();
+        await this.initRoutes();
 
         // exec tests
         this.execTests();
@@ -92,8 +94,8 @@ class bootSce
         return process[section];
     }
 
-    initServices(policies) { 
-        return this.initModules(policies,'service','services','init');
+    async initServices(policies) { 
+        return await this.initModules(policies,'service','services','init');
     }
 
     execTests(tests) { 
@@ -104,7 +106,7 @@ class bootSce
         return this.initModules(run,'run','run','run');
     }
 
-    initModules(policies,type,section,fun="init") { 
+    async initModules(policies,type,section,fun="init") { 
         // default values
         type = type || 'module';
         section = section || type+'s';
@@ -136,10 +138,10 @@ class bootSce
 
         const aPolicies = self._getActiveComponents(policies,section,section,'*');
         process[section] = {};
-        aPolicies.forEach(id => {
+        await arraySce.forEachAsync(aPolicies, async id => {
             let conf = self._getComponentConfig(id,configComponentsLower);
             let path = self._getComponentPath(id,conf,defaultComponentPath);
-            self._initComponent(id,path,conf,type,section,fun);
+            await self._initComponent(id,path,conf,type,section,fun);
         });
 
         return process[section];
@@ -279,6 +281,26 @@ class bootSce
         return comp;
     }
 
+    _getInjections(compConf) {
+
+        let injections=[];
+        if(compConf.injections)
+        {
+            compConf.injections.split(',').forEach(id => {
+                    id = id.trim();
+                    if(this.components[id] && this.components[id].comp)
+                        injections.push(this.components[id].comp);
+                    else
+                        {
+                            debug.error("trying to inject unintialised service "+id);
+                            throw new Error("Injection Error unknown service"+id);
+                        }
+            })
+        }
+
+        return injections;
+    }
+
     async _initComponent(id,path,compConf,type,section,fun="init") {
         let self = this;
 
@@ -292,15 +314,16 @@ class bootSce
 
             // require component or reuse
             let comp = this._requireComp(id,path,compConf);
+            const injections = this._getInjections(compConf);
             
             let res;
             if(comp[fun])
             {
-                res = comp[fun](compConf,self.ctxt);
+                res = comp[fun](compConf,self.ctxt,...injections);
             }
             else if(comp.prototype[fun])
             {
-                res = comp.prototype[fun](compConf,self.ctxt);
+                res = comp.prototype[fun](compConf,self.ctxt,...injections);
             }
 
             // registers to global process
@@ -315,7 +338,7 @@ class bootSce
         } 
         catch(err) {
             debug.error('Error loading compnent : '+path+' '+(err.stack||err));
-            return false;
+            throw err;
         }
     }
 
@@ -339,10 +362,12 @@ class bootSce
             if(compConf['url'])
             {
                 const comp = this._requireComp(id,path,compConf);
+                const injections = this._getInjections(compConf);
+
                 let router;
 
 				if(!comp.post && !comp.get && comp.init)
-					router = comp.init(compConf,self.ctxt.express,self.ctxt.app);				
+					router = comp.init(compConf,self.ctxt.express,...injections);				
 				else
 					router = comp;
 
