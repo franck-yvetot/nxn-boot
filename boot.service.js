@@ -83,15 +83,29 @@ class bootSce
 
         let defaultComponentPath = this._getDefaultComponentPath(section,ENV_DIR);
 
-        const aPolicies = self._getActiveComponents(policies,section,section,'*');
+        const aPolicies = self._getActiveComponents(policies,section,section,'*',configComponents);
         process[section] = {};
+        let comps={};
         aPolicies.forEach(id => {
             let conf = self._getComponentConfig(id,configComponents);
             let path = self._getComponentPath(id,conf,defaultComponentPath);
+
+            const comp = self._loadComponent(id,path,conf,"policy",section);
+            comps[id]={conf,path,comp};
+        });
+
+        const aPolicies2 = this.reorderDeps(aPolicies,comps);
+
+        aPolicies2.forEach(id => {
+            const {conf,path} = comps[id];
             self._initComponent(id,path,conf,"policy",section);
         });
 
         return process[section];
+    }
+
+    reorderDeps(aPolicies) {
+        return aPolicies;
     }
 
     async initServices(policies) { 
@@ -136,15 +150,63 @@ class bootSce
 
         let defaultComponentPath = this._getDefaultComponentPath(section,ENV_DIR);
 
-        const aPolicies = self._getActiveComponents(policies,section,section,'*');
+        let aPolicies = self._getActiveComponents(policies,section,section,'*',configComponentsLower);
         process[section] = {};
-        await arraySce.forEachAsync(aPolicies, async id => {
+        let comps={};
+        arraySce.forEachSync(aPolicies, id => {
             let conf = self._getComponentConfig(id,configComponentsLower);
             let path = self._getComponentPath(id,conf,defaultComponentPath);
+            const comp = self._loadComponent(id,path,conf,type,section);
+            comps[id]={conf,path,comp};
+        });
+
+        if(section == "services")
+            aPolicies = this.reorderDeps(aPolicies,comps);
+
+        await arraySce.forEachAsync(aPolicies, async id => {
+            const {conf,path} = comps[id];
             await self._initComponent(id,path,conf,type,section,fun);
         });
 
         return process[section];
+    }
+
+    // topological order : put in basket all components that have :
+    // no injection, or all injections already in ordered basket.
+    // detects cyclic injections.
+    reorderDeps(aPolicies,comps) {
+        let aSorted=[]; // ordered array
+        let sorted={}; // check if in order array
+        const n = aPolicies.length;
+        let limit = n*2; // limit in case of cyclic dep
+        while(aPolicies.length && limit--)
+        {
+            for(let i=0;i<aPolicies.length;i++)
+            {
+                const id = aPolicies[i];
+                const conf = comps[id].conf;
+                const comp = comps[id].comp;
+                const inject = (conf.injections||'');
+                if(!inject) 
+                    // no injection 
+                    sorted[id]=true,aSorted.push(id),aPolicies.splice(i,1);
+                else{
+                    const aInject=inject.split(',');
+                    let injSorted=true;
+                    aInject.forEach(ij=>{
+                        if(!sorted[ij] && !comp.__init)
+                            injSorted=false; // deps not yet in sorted => fails this time
+                    });
+                    if(injSorted)
+                        // all injections already in ordered array => ok
+                        sorted[id]=true,aSorted.push(id),aPolicies.splice(i,1);    
+                }
+            }
+        }
+        if(limit<=0)
+            throw new Error("Cyclic injection not allowed");
+
+        return aSorted;
     }
 
     initRoutes(policies) { 
@@ -168,7 +230,7 @@ class bootSce
 
         let defaultComponentPath = this._getDefaultComponentPath(section,ENV_DIR);
 
-        const aPolicies = self._getActiveComponents(policies,section,section,'*');
+        const aPolicies = self._getActiveComponents(policies,section,section,'*',configComponents);
         process[section] = {};
         aPolicies.forEach(id => {
             let conf = self._getComponentConfig(id,configComponents);
@@ -179,12 +241,12 @@ class bootSce
         return process[section];
     }
 
-    _getActiveComponents(vals,section,env,defaultVal) {
-        const csv = vals || process.env[env.toUpperCase()] || defaultVal || '*';
+    _getActiveComponents(vals,section,env,defaultVal,components) {
+        let csv = vals || process.env[env.toUpperCase()] || defaultVal || '*';
 
-        if(csv == '*')
+        if(csv == '*' || csv == 'all' || csv.startsWith("all "))
         {
-            let keys = Object.keys(section);
+            let keys = Object.keys(components);
             let filtered = keys.filter(function(value, index, arr){
 
                 return value != 'default_path';
@@ -275,7 +337,7 @@ class bootSce
             else
                 comp = require(path);
 
-            this.components[id] = {comp,path};
+            this.components[id] = {comp,path,compConf};
         }
 
         return comp;
@@ -301,7 +363,7 @@ class bootSce
         return injections;
     }
 
-    async _initComponent(id,path,compConf,type,section,fun="init") {
+    async __initComponent(id,path,compConf,type,section,fun="init") {
         let self = this;
 
         if(!type)
@@ -335,6 +397,72 @@ class bootSce
 
             debug.log('Policy loaded: '+path);
             return true;
+        } 
+        catch(err) {
+            debug.error('Error loading compnent : '+path+' '+(err.stack||err));
+            throw err;
+        }
+    }
+
+    async _initComponent(id,path,compConf,type,section,fun="init") {
+        let self = this;
+
+        if(!type)
+            type = 'component';
+
+        // external policy defined as module/class in ../policies/
+        try {
+            // await fs.promises.access(path+'.js');
+            debug.log('loading '+ type +' : '+path);
+
+            // require component or reuse
+            let comp = this._requireComp(id,path,compConf);
+            const injections = this._getInjections(compConf);
+            
+            let res;
+            if(comp[fun])
+            {
+                res = comp[fun](compConf,self.ctxt,...injections);
+            }
+            else if(comp.prototype[fun])
+            {
+                res = comp.prototype[fun](compConf,self.ctxt,...injections);
+            }
+
+            comp.__init=true;
+
+            // if async, wait for the end of the service
+            if(res && res.then)
+                await res;
+
+            debug.log('Policy init: '+path);
+            return true;
+        } 
+        catch(err) {
+            debug.error('Error init compnent : '+path+' '+(err.stack||err));
+            throw err;
+        }
+    }
+        
+    _loadComponent(id,path,compConf,type,section) {
+        let self = this;
+
+        if(!type)
+            type = 'component';
+
+        // external policy defined as module/class in ../policies/
+        try {
+            // await fs.promises.access(path+'.js');
+            debug.log('loading '+ type +' : '+path);
+
+            // require component or reuse
+            let comp = this._requireComp(id,path,compConf);
+            
+            // registers to global process
+            self._registerComponent(id,section,comp,path);
+
+            debug.log('Policy loaded: '+path);
+            return comp;
         } 
         catch(err) {
             debug.error('Error loading compnent : '+path+' '+(err.stack||err));
