@@ -156,7 +156,7 @@ class bootSce
         arraySce.forEachSync(aPolicies, id => {
             let conf = self._getComponentConfig(id,configComponentsLower);
             let path = self._getComponentPath(id,conf,defaultComponentPath);
-            const comp = self._loadComponent(id,path,conf,type,section);
+            const comp = self._loadComponent(id,path,conf,type,section,fun);
             comps[id]={conf,path,comp};
         });
 
@@ -315,9 +315,9 @@ class bootSce
         return path;
     }
 
-    _registerComponent(id,type,comp,path) {
+    _registerComponent(id,type,comp,path,confComp) {
         process[type][id] = comp;
-        this.components[id] = {comp,path};
+        this.components[id] = {comp,path,confComp};
     }
 
     _requireComp(id,path,compConf) {
@@ -337,7 +337,7 @@ class bootSce
             else
                 comp = require(path);
 
-            this.components[id] = {comp,path,compConf};
+            // this.components[id] = {comp,path,compConf};
         }
 
         return comp;
@@ -387,9 +387,24 @@ class bootSce
             {
                 res = comp.prototype[fun](compConf,self.ctxt,...injections);
             }
+            // not init function but getInstance => factory
+            else if(comp.getInstance)
+            {
+                // create instance and init
+                comp = comp.getInstance(id);
+
+                if(comp[fun])
+                {
+                    res = comp[fun](compConf,self.ctxt,...injections);
+                }
+                else if(comp.prototype[fun])
+                {
+                    res = comp.prototype[fun](compConf,self.ctxt,...injections);
+                }    
+            }
 
             // registers to global process
-            self._registerComponent(id,section,comp,path);
+            self._registerComponent(id,section,comp,path,compConf);
 
             // if async, wait for the end of the service
             if(res && res.then)
@@ -424,10 +439,29 @@ class bootSce
             {
                 res = comp[fun](compConf,self.ctxt,...injections);
             }
+            else if(comp.prototype && comp.prototype[fun])
+            {
+                res = comp.prototype[fun](compConf,self.ctxt,...injections);
+            }
+            /*
+            // not init function but getInstance => factory
+            else { 
+                if(comp.getInstance)
+                {
+                    // create instance and init
+                    comp = comp.getInstance(id);
+
+                    if(comp[fun])
+                    {
+                        res = comp[fun](compConf,self.ctxt,...injections);
+                    }
             else if(comp.prototype[fun])
             {
                 res = comp.prototype[fun](compConf,self.ctxt,...injections);
             }
+                }
+            }
+            */
 
             comp.__init=true;
 
@@ -444,7 +478,7 @@ class bootSce
         }
     }
         
-    _loadComponent(id,path,compConf,type,section) {
+    _loadComponent(id,path,compConf,type,section,fun="init") {
         let self = this;
 
         if(!type)
@@ -458,8 +492,12 @@ class bootSce
             // require component or reuse
             let comp = this._requireComp(id,path,compConf);
             
+            if(! (comp[fun] || comp.prototype && comp.prototype[fun]) && comp.getInstance)
+                // create instance and init
+                comp = comp.getInstance(id);
+            
             // registers to global process
-            self._registerComponent(id,section,comp,path);
+            self._registerComponent(id,section,comp,path,compConf);
 
             debug.log('Policy loaded: '+path);
             return comp;
@@ -489,15 +527,34 @@ class bootSce
 
             if(compConf['url'])
             {
-                const comp = this._requireComp(id,path,compConf);
+                let comp = this._requireComp(id,path,compConf);
                 const injections = this._getInjections(compConf);
 
                 let router;
 
-				if(!comp.post && !comp.get && comp.init)
+                if(comp.post || comp.get)
+                    // simple router
+                    router = comp;
+                else
+                {
+                    // service : route
+                    if(comp.init || (comp.prototype && comp.prototype.init))
+                        router = comp.init(compConf,self.ctxt.express,...injections);				
+                    else if(comp.getInstance)
+                    {
+                        // factory : route
+
+                        // create instance and init
+                        comp = comp.getInstance(id);
+                        if(comp.init || comp.prototype.init)
 					router = comp.init(compConf,self.ctxt.express,...injections);				
 				else
 					router = comp;
+                    }
+                }
+
+                if(!router)
+                    throw new Error("Unknow route "+id);
 
                 self.ctxt.app.use(compConf['url'],router);
 
