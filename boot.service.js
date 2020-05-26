@@ -6,7 +6,8 @@ var requireRoot = require('rfr');
 requireRoot.setRoot(process.cwd());
 */
 
-const arraySce = require("@nxn/ext/array.service");
+const {objectSce,arraySce} = require("@nxn/ext");
+
 
 // const debug = require("./debug.service")("BOOT");
 let debug= console;
@@ -51,6 +52,9 @@ class bootSce
 
         // init services
         await this.initServices();
+
+        // init services
+        await this.initNodes();
 
         // prepare routes
         await this.initRoutes();
@@ -112,6 +116,10 @@ class bootSce
         return await this.initModules(policies,'service','services','init');
     }
 
+    async initNodes(policies) { 
+        return await this.initModules(policies,'node','nodes','init');
+    }
+
     execTests(tests) { 
         return this.initModules(tests,'test','tests');
     }
@@ -160,7 +168,7 @@ class bootSce
             comps[id]={conf,path,comp};
         });
 
-        if(section == "services")
+        if(section == "services" || section == "nodes" )
             aPolicies = this.reorderDeps(aPolicies,comps);
 
         await arraySce.forEachAsync(aPolicies, async id => {
@@ -191,7 +199,17 @@ class bootSce
                     // no injection 
                     sorted[id]=true,aSorted.push(id),aPolicies.splice(i,1);
                 else{
-                    const aInject=inject.split(',');
+                    let aInject=[];
+                    if(typeof inject == 'array')
+                        aInject = inject.join(",").toLowerCase().trim().split(',');
+                    else if(typeof inject == 'object')
+                    {
+                        objectSce.forEachSync(inject,v=>aInject.push(v));
+                        aInject = aInject.join(',').toLowerCase().split(',');
+                    }
+                    else
+                        aInject=inject.toLowerCase().trim().split(',');
+                    
                     let injSorted=true;
                     aInject.forEach(ij=>{
                         if(!sorted[ij] && !comp.__init)
@@ -343,12 +361,10 @@ class bootSce
         return comp;
     }
 
-    _getInjections(compConf) {
-
+    _getInjectionsInString(inj) {
         let injections=[];
-        if(compConf.injections)
-        {
-            compConf.injections.split(',').forEach(id => {
+        
+        inj.toLowerCase().split(',').forEach(id => {
                     id = id.trim();
                     if(this.components[id] && this.components[id].comp)
                         injections.push(this.components[id].comp);
@@ -357,7 +373,30 @@ class bootSce
                             debug.error("trying to inject unintialised service "+id);
                             throw new Error("Injection Error unknown service"+id);
                         }
-            })
+        });
+
+        return injections;
+    }
+
+    _getInjectionsInObj(inj) {
+        let injections = {};
+        
+        objectSce.forEachSync(inj,(id,key)=>{
+            injections[key]=this._getInjectionsInString(id);
+        });
+
+        return injections;       
+    }
+
+    _getInjections(compConf) {
+
+        let injections=[];
+        if(compConf.injections)
+        {
+            if(typeof compConf.injections=="string")
+                injections = this._getInjectionsInString(compConf.injections);
+            else if(typeof compConf.injections=="object")
+                    injections.push(this._getInjectionsInObj(compConf.injections));
         }
 
         return injections;
