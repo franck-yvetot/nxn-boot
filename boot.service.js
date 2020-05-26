@@ -449,11 +449,11 @@ class bootSce
             if(res && res.then)
                 await res;
 
-            debug.log('Policy loaded: '+path);
+            debug.log('Policy loaded: "'+id+'" ');
             return true;
         } 
         catch(err) {
-            debug.error('Error loading compnent : '+path+' '+(err.stack||err));
+            debug.error('Error loading compnent "'+id+'" : '+path+' '+(err.stack||err));
             throw err;
         }
     }
@@ -467,7 +467,7 @@ class bootSce
         // external policy defined as module/class in ../policies/
         try {
             // await fs.promises.access(path+'.js');
-            debug.log('loading '+ type +' : '+path);
+            debug.log('loading '+ type +' "'+id+'" : '+path);
 
             // require component or reuse
             let comp = this._requireComp(id,path,compConf);
@@ -508,11 +508,11 @@ class bootSce
             if(res && res.then)
                 await res;
 
-            debug.log('Policy init: '+path);
+            debug.log('Policy init: "'+id+'" '+path);
             return true;
         } 
         catch(err) {
-            debug.error('Error init compnent : '+path+' '+(err.stack||err));
+            debug.error('Error init component "'+id+'" : '+path+' '+(err.stack||err));
             throw err;
         }
     }
@@ -526,7 +526,7 @@ class bootSce
         // external policy defined as module/class in ../policies/
         try {
             // await fs.promises.access(path+'.js');
-            debug.log('loading '+ type +' : '+path);
+            debug.log('loading '+ type +' "'+id+'" : '+path);
 
             // require component or reuse
             let comp = this._requireComp(id,path,compConf);
@@ -538,11 +538,11 @@ class bootSce
             // registers to global process
             self._registerComponent(id,section,comp,path,compConf);
 
-            debug.log('Policy loaded: '+path);
+            debug.log('Policy loaded: "'+id+'" '+path);
             return comp;
         } 
         catch(err) {
-            debug.error('Error loading compnent : '+path+' '+(err.stack||err));
+            debug.error('Error loading component : '+path+' '+(err.stack||err));
             throw err;
         }
     }
@@ -562,7 +562,7 @@ class bootSce
         // external policy defined as module/class in ../policies/
         try {
             // await fs.promises.access(path+'.js');
-            debug.log('loading route '+ type +' : '+path);
+            debug.log('loading route "'+id+'"'+ type +' : '+path);
 
             if(compConf['url'])
             {
