@@ -298,6 +298,9 @@ class bootSce
         if(config[id])
         {
             this.policies[id] = config[id];
+            if(!config[id].id)
+                config[id].id = id;
+                
             return config[id];
         }
 

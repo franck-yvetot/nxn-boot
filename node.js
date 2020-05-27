@@ -1,4 +1,6 @@
-const debug = require("@nxn/debug")("OUTPUT NODE");
+const _debug = require("@nxn/debug");
+
+const debug = _debug("NODE");
 const arraySce = require("@nxn/ext/array.service");
 
 let nodes = [];
@@ -6,22 +8,40 @@ let nodes = [];
 class Node
 {
     constructor() {
-        this._id = nodes.length;
+        this._idx = this._id = nodes.length;
         nodes.push(this);
 
         this._status='created';
+        this.debug = debug;
     }
+
+    init(config,ctxt,injections) {
+        this.config = config;
+        if(this.config.id)
+            this._id = this.config.id;
+        this.registerReceivers(injections);
+
+        // set debugger with node id
+        this.debug = _debug(this.id());
+    }
+
+    invalidParam(p) {
+        throw new Error(this.id() +" missing configuration attribute "+p);
+    }
+
+    log(s)   { this.debug.log(s); }
+    error(s) { this.debug.error(s); }
 
     canSendMessage() {
         return (this._nodes && this._nodes.length);
     }
 
     name() {
-        return this._name || (this.config && this.config.name) || 'node #'+this._id;
+        return this._name || (this.config && this.config.name) || this.id();
     }
 
     id() {
-        return this._id;
+        return this._id || 'node-'+this._idx;
     }
 
     registerReceivers(injections) {
@@ -69,7 +89,7 @@ class Node
         if(nodes && nodes.length)
         {
             var name1 = this.name && this.name() || '';
-            debug.log(name1+" connecting to "+nodes.length+" Message listeners");
+            this.log(name1+" connecting to "+nodes.length+" Message listeners");
 
             let i = 0;
             nodes.forEach(p=> {
@@ -77,12 +97,12 @@ class Node
                 const name = p.name && p.name() || ("Processor #"+i);
                 if(!p.processMessage)
                 {
-                    debug.error(name+" has no processMessage(obj) function => ignored");
+                    this.error(name+" has no processMessage(obj) function => ignored");
                     throw new Error(name+" has no processMessage(obj) function => ignored");
                 }
                 else {
                     this._nodes.push(p);
-                    debug.log(name+" connected on "+name1);
+                    this.log(name+" connected on "+name1);
                 }
             })
         }
@@ -115,14 +135,33 @@ class Node
         }
     }
 
+    getInjection(inj,isArray=false) {
+        if(!this.injections || !this.injections[inj])
+            return null;
+
+        if(isArray)
+            return this.injections[inj];
+        else
+            return this.injections[inj][0];
+    }
+
+    getInjections(inj=null) {
+        if(!this.injections)
+            return null;
+
+        if(inj)
+            return this.injections[inj];
+        else
+            return this.injections;
+    }
+
     sendError(data) {
         if(this.injections.errors)
             this.sendMessage({name:this.name(),data:data},this.injections.errors);            
     }
     
     async _sendOneMessage(message,node,i=0) {
-        const name = node.name && node.name() || ("Processor #"+i);
-        debug.log(this.name()+" Send message to "+name);
+        this.log(" ---> OUTPUT MESSAGE to "+ node.id());
         await node.processMessage(message);
     }
 
@@ -133,7 +172,7 @@ class Node
     async processMessage(message) {
         if(!message)
         {
-            debug.error("empty message received")
+            this.error("empty message received")
             return;
         }
 
