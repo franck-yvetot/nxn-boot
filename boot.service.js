@@ -1,6 +1,8 @@
-const config = require('@nxn/config');
-
+const configSce = require('@nxn/config');
 const fs = require('fs');
+const envSce = require("./middleware/env");
+
+
 /*
 var requireRoot = require('rfr');
 requireRoot.setRoot(process.cwd());
@@ -21,17 +23,57 @@ class bootSce
         this.ctxt = {};
         this.policies={};
         this.components={};
+
+        envSce.init();
     }
 
-    runConfig(path,dirPaths,app=null,express=null,withModuleAlias=true)
-    {
-        this.loadConfig(path,dirPaths);
+    // set env name that is initially replaced in config files before parsing the file yml, json
+    setEnv(env) {
+        this.env = env;
+    }
 
+    run(path,dirPaths,app=null,express=null,withModuleAlias=true)
+    {
+        // this.loadConfig(path,dirPaths,this.env||process.env.NODE_ENV);
+        let config = configSce.loadConfig(path,dirPaths);
+        let dump = config.dump_config && path || null;
+
+        // apply variables if any
+        if(config.variables && config.variables.path)
+        {
+            // load variables
+            let variables = configSce.loadConfig(config.variables.path ,dirPaths);
+
+            // add them to environment variables
+            variables = envSce.init(variables);
+
+            // and apply to config
+            config = configSce.applyVariables(config, variables, dump);
+        }
+        else
+    {
+            // add them to environment variables
+            let variables = process.env;
+
+            // and apply to config
+            config = configSce.applyVariables(config, variables, dump);
+        }
+
+        this.ctxt.config = this.config = config;
         this.initAll(app,express,withModuleAlias);
     }
 
-    loadConfig(path,dirPaths) {
-        this.ctxt.config = this.config = config.loadConfig(path,dirPaths);
+    runConfig(config,app=null,express=null,withModuleAlias=true) {
+        this.ctxt.config = this.config = config;
+        this.initAll(app,express,withModuleAlias);
+    }
+
+    loadConfig(path,dirPaths,env) {
+        this.ctxt.config = this.config = configSce.loadConfig(path,dirPaths);
+
+        // apply variables if any
+        if(this.config.variables && this.config.variables.path)
+        configSce.applyVariables(this.config, this.config.variables.path);
     }
 
     async initAll(app,express,withModuleAlias) {

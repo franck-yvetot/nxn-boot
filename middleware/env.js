@@ -15,9 +15,13 @@ class envPolicy {
         var myEnv = dotenv.config()
         dotenvExpand(myEnv);
 
+        // add env variables from config
+        if(config)
         for (const k in config) {
             process.env[k] = config[k]
         }
+            
+        return process.env;
     }
 }
 

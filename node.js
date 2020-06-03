@@ -13,9 +13,13 @@ class Node
 
         this._status='created';
         this.debug = debug;
+        this._isInit = false;
     }
 
     init(config,ctxt,injections) {
+        if(this._isInit)
+            return;
+
         this.config = config;
         if(this.config.id)
             this._id = this.config.id;
@@ -23,6 +27,13 @@ class Node
 
         // set debugger with node id
         this.debug = _debug(this.id());
+
+        this._status='initialised';
+        this._isInit = true;
+    }
+
+    isInit() { 
+        return this._isInit;
     }
 
     invalidParam(p) {
