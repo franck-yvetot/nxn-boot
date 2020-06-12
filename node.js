@@ -172,7 +172,8 @@ class Node
     }
     
     async _sendOneMessage(message,node,i=0) {
-        this.log(" ---> OUTPUT MESSAGE to "+ node.id());
+        const name = message.name || '';
+        this.log(" ---> ["+ node.id()+ "] send(" + name + ")") ;
         await node.processMessage(message);
     }
 

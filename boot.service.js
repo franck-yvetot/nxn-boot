@@ -23,6 +23,7 @@ class bootSce
         this.ctxt = {};
         this.policies={};
         this.components={};
+        this.configImports = [];
 
         envSce.init();
     }
@@ -35,29 +36,8 @@ class bootSce
     run(path,dirPaths,app=null,express=null,withModuleAlias=true)
     {
         // this.loadConfig(path,dirPaths,this.env||process.env.NODE_ENV);
-        let config = configSce.loadConfig(path,dirPaths);
+        let config = configSce.loadConfig(path,dirPaths,process.env);
         let dump = config.dump_config && path || null;
-
-        // apply variables if any
-        if(config.variables && config.variables.path)
-        {
-            // load variables
-            let variables = configSce.loadConfig(config.variables.path ,dirPaths);
-
-            // add them to environment variables
-            variables = envSce.init(variables);
-
-            // and apply to config
-            config = configSce.applyVariables(config, variables, dump);
-        }
-        else
-    {
-            // add them to environment variables
-            let variables = process.env;
-
-            // and apply to config
-            config = configSce.applyVariables(config, variables, dump);
-        }
 
         this.ctxt.config = this.config = config;
         this.initAll(app,express,withModuleAlias);
@@ -553,7 +533,7 @@ class bootSce
             if(res && res.then)
                 await res;
 
-            debug.log('Policy init: "'+id+'" '+path);
+            debug.log(type +' initialised: "'+id);
             return true;
         } 
         catch(err) {
