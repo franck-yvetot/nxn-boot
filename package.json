@@ -1,6 +1,6 @@
 {
   "name": "@nxn/boot",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "boot framework, config based and services, application components, API/routes, middleware, code gen.",
   "main": "index.js",
   "scripts": {
