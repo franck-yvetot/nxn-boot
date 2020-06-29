@@ -2,18 +2,23 @@ const _debug = require("@nxn/debug");
 
 const debug = _debug("NODE");
 const arraySce = require("@nxn/ext/array.service");
-
-let nodes = [];
+const nodeManager = require("./node_manager");
 
 class Node
 {
     constructor() {
-        this._idx = this._id = nodes.length;
-        nodes.push(this);
+        this._idx = this._id = nodeManager.addNode(this);
 
         this._status='created';
         this.debug = debug;
         this._isInit = false;
+        this.injections = {}
+        this._nodes = [];
+
+    }
+
+    static nodeManager() {
+        return nodeManager;
     }
 
     init(config,ctxt,injections) {
@@ -45,6 +50,12 @@ class Node
 
     canSendMessage() {
         return (this._nodes && this._nodes.length);
+    }
+
+    createMessage(data,prevMsg) {
+        let msg = {...prevMsg};
+        msg.data = data;
+        return msg;
     }
 
     name() {
@@ -121,12 +132,32 @@ class Node
         this._status='initialised';
     }
 
+    addInjection(toNode,injName) {
+        if(!injName)
+            injName = 'output';
+
+        if(!toNode.processMessage)
+            throw new Error("cant inject a node that has no processMessage()");
+
+        if(!this.injections[injName])
+            this.injections[injName]=[];
+
+        this.injections[injName].push(toNode);
+        this._nodes.push(toNode);
+        this.log(this.name()+" connected to "+toNode.name());
+        
+        return true;
+    }
+
     sendMessage(message,nodes) {
         if(!nodes)
             nodes = this._nodes;
 
         if(!message.name)
             message.name = this.name();
+
+        if(typeof nodes == "string")
+            nodes = this.getInjections(nodes);
 
         if(typeof nodes.length=="undefined" && nodes._status)
             this._sendOneMessage(message,nodes);
@@ -173,12 +204,20 @@ class Node
     
     async _sendOneMessage(message,node,i=0) {
         const name = message.name || '';
+        if(node.id) {
         this.log(" ---> ["+ node.id()+ "] send(" + name + ")") ;
         await node.processMessage(message);
+    }
+        else 
+            throw new Error("node unknown");
     }
 
     async nodeStatus(str='') {               
         this._status = str;
+    }
+
+    async run(config,ctxt) {        
+        this.processMessage(config);
     }
 
     async processMessage(message) {
