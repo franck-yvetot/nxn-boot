@@ -3,6 +3,7 @@ const _debug = require("@nxn/debug");
 const debug = _debug("NODE MANAGER");
 
 let nodes = [];
+let _id = 0;
 class NodeManager
 {
     constructor() 
@@ -11,81 +12,94 @@ class NodeManager
         this.components = {};
     }
 
+    getNewId() {
+        return _id++;
+    }
+
     addNode(node) {
+        this.components[node.id()]=node;
         this.nodes.push(node);
         return nodes.length-1;
     }
 
-    _requireComp(id,path,compConf) {
-
-        // require component or reuse
-        let comp;
-
-        // get previously loaded service if same path or no path
-        if(this.components[id] && (!compConf.path || this.components[id].path==compConf.path)) {
-            comp = this.components[id].comp;
-            path = this.components[id].path;
-        }
-        else
-        {
-            if(path.startsWith('applications'))
-                //comp = requireRoot(path);
-                comp = require(process.cwd()+'/'+path);
-            else
-                comp = require(path);
-
-            // this.components[id] = {comp,path,compConf};
-        }
-
-        return comp;
+    invalidParam(p) {
+        throw new Error("missing configuration attribute "+p);
     }
 
-    _getInjectionsInString(inj) {
-        let injections=[];
-        
-        inj.toLowerCase().split(',').forEach(id => {
-                    id = id.trim();
-                    if(this.components[id] && this.components[id].comp)
-                        injections.push(this.components[id].comp);
-                    else
+    getComponentById(id) {
+        id = id.trim();
+        if(this.components[id] && this.components[id].comp)
+            return this.components[id].comp;
+
+        if(process['services'] && process['services'][id])
+            return process['services'][id];
+
+        if(process['nodes'] && process['nodes'][id])
+            return process['nodes'][id];
+
+        return null;
+    }
+
+    loadComponents(components,idParent='node',defaultApp='shared',fun="init") {
+        components.forEach(
+            (compConf,idx) => 
                         {
-                            debug.error("trying to inject unintialised service "+id);
-                            throw new Error("Injection Error unknown service "+id);
-                        }
+                let id = compConf.id || idParent+'_'+this.getNewId();
+                compConf.id = id;
+                if(!compConf.comp)
+                compConf.comp = this.loadComponent(compConf,defaultApp,fun) ;
         });
-
-        return injections;
     }
 
-    _getInjectionsInObj(inj) {
-        let injections = {};
+    loadComponent(compConf,defaultApp='shared',fun="init") {
+        if(compConf.comp)
+            return compConf.comp;
+
+        let id = compConf.id;
+        let comp = this.getComponentById(id);
+        if(comp)
+            return this.components;
+
+        let path = compConf.path;
+        let app = null;
+        if(!path) {
+            let aId = id.split('@');
+            app = aId.length>1 ? aId[1] : defaultApp;
+            path = `applications/${app}/nodes/${id}.node`;
+    }
+
+        if(!path)
+            return this.invalidParam('path or id');
         
-        objectSce.forEachSync(inj,(id,key)=>{
-            injections[key]=this._getInjectionsInString(id);
-        });
+        if(path.startsWith('applications'))
+            comp = require(process.cwd()+'/'+path);
+        else
+            comp = require(path);
 
-        return injections;       
-    }
+        // if it is a factory, get instance instead
+        if(! (comp[fun] || comp.prototype && comp.prototype[fun]) && comp.getInstance)
+            // create instance and init
+            comp = comp.getInstance(id);
 
-    _getInjections(compConf) {
-
-        let injections=[];
-        if(compConf.injections)
-        {
-            if(typeof compConf.injections=="string")
-                injections = this._getInjectionsInString(compConf.injections);
-            else if(typeof compConf.injections=="object")
-                    injections.push(this._getInjectionsInObj(compConf.injections));
+        this._registerComponent(id,'node',comp,path,compConf);
+        return comp;
         }
 
-        return injections;
+    _registerComponent(id,type,comp,path,confComp) {
+        if(!process[type])
+            process[type]= {};
+        
+        process[type][id] = comp;
+        if(!confComp.path)
+            confComp.path = path;
+
+        this.components[id] = {comp,path,confComp};
     }
 
-    async _initComponent(id,path,compConf,type,section,fun="init") {
+    async initComponent(compConf,type='node',fun="init") {
         let self = this;
-
-        if(!type)
-            type = 'component';
+        let id = compConf.id;
+        let path = compConf.path;
 
         // external policy defined as module/class in ../policies/
         try {
@@ -93,8 +107,8 @@ class NodeManager
             debug.log('loading '+ type +' "'+id+'" : '+path);
 
             // require component or reuse
-            let comp = this._requireComp(id,path,compConf);
-            const injections = this._getInjections(compConf);
+            let comp = compConf.comp;
+            const injections = this.getInjections(compConf);
             
             let res;
             if(comp[fun])
@@ -121,55 +135,48 @@ class NodeManager
         }
     }
         
-    _loadComponent(id,path,compConf,type,section,fun="init") {
-        let self = this;
-
-        if(!type)
-            type = 'component';
-
-        // external policy defined as module/class in ../policies/
-        try {
-            // await fs.promises.access(path+'.js');
-            debug.log('required '+ type +' "'+id+'" : '+path);
-
-            // require component or reuse
-            let comp = this._requireComp(id,path,compConf);
             
-            if(! (comp[fun] || comp.prototype && comp.prototype[fun]) && comp.getInstance)
-                // create instance and init
-                comp = comp.getInstance(id);
+    // ============= INJECTIONS ================
             
-            // registers to global process
-            self._registerComponent(id,section,comp,path,compConf);
+    getInjections(compConf) {
 
-            // debug.log(type +' required: "'+id+'"');
-            return comp;
-        } 
-        catch(err) {
-            debug.error('Error loading component : '+path+' '+(err.stack||err));
-            throw err;
+        let injections=[];
+        if(compConf.injections)
+        {
+            if(typeof compConf.injections=="string")
+                injections = this._getInjectionsInString(compConf.injections);
+            else if(typeof compConf.injections=="object")
+                    injections.push(this._getInjectionsInObj(compConf.injections));
         }
+
+        return injections;
     }
     
-    _getComponentPath(id,compConfig,defaultPath) {
-        let path;
+    _getInjectionsInString(inj) {
+        let injections=[];
 
-        if(compConfig['path'])
-            path = this.bootDir+compConfig['path'];
+        inj.toLowerCase().split(',').forEach(id => {
+            const comp = this.getComponentById(id);
+            if(comp)
+                injections.push(comp);
+            else
+            {
+                debug.error("trying to inject unintialised service "+id);
+                throw new Error("Injection Error unknown service "+id);
+            }
+        });
 
-        else if(defaultPath) {
-            path = defaultPath;
+        return injections;
         }
-        else
-            path = this.bootDir+'$id';
 
-        path = path.replace(/\$id/g,id).replace("//","/");
+    _getInjectionsInObj(inj) {
+        let injections = {};
 
-        return path;
-    }
-    _registerComponent(id,type,comp,path,confComp) {
-        process[type][id] = comp;
-        this.components[id] = {comp,path,confComp};
+        objectSce.forEachSync(inj,(id,key)=>{
+            injections[key]=this._getInjectionsInString(id);
+        });
+
+        return injections;       
     }
 }
 

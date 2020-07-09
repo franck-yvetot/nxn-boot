@@ -58,6 +58,25 @@ class Node
         return msg;
     }
 
+    logExec(message,str,debug) {
+        debug = debug || this.debug;
+
+        let s = this.name();
+        if(str)
+            s+=" "+str;
+
+        if(debug)
+            debug.log("Executed : "+s);
+
+        if(!message.workflow)
+            message.workflow = {};
+
+        if(!message.workflow.log)
+            message.workflow.log = [];
+
+        message.workflow.log.push(s);
+    }
+
     name() {
         return this._name || (this.config && this.config.name) || this.id();
     }

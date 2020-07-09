@@ -250,7 +250,10 @@ class bootSce
             }
         }
         if(limit<=0)
-            throw new Error("Cyclic injection not allowed");
+        {
+            const fails = aPolicies.join(',');
+            throw new Error("Cyclic or missing injection not allowed, check injections for : "+fails);
+        }
 
         return aSorted;
     }
@@ -395,6 +398,14 @@ class bootSce
         }
 
         return comp;
+    }
+
+    getComponent(id) {
+        id = id.trim();
+        if(this.components[id] && this.components[id].comp)
+            return this.components[id].comp;
+
+        return null;
     }
 
     _getInjectionsInString(inj) {
