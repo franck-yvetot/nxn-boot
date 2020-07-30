@@ -4,6 +4,57 @@ const debug = _debug("NODE");
 const arraySce = require("@nxn/ext/array.service");
 const nodeManager = require("./node_manager");
 
+class NodeMessage 
+{
+    constructor(data=null,prevMsg=null) 
+    {
+        if(prevMsg)
+            Object.assign(this, prevMsg);
+        
+        if(data)
+            this.data = data;
+    }
+
+    getParam(name,dft)
+    {
+        return this.req && this.req.params && (this.req.params[name]!=null) ? 
+            this.req.params[name] 
+            : dft;
+    }
+
+    getQueryParam(name,dft)  
+    {
+        return this.req && this.req.query && (this.req.query[name]!=null) ? 
+            this.req.query[name] 
+            : dft;
+    }
+
+    setReq(req,res,user) 
+    {
+        this.req = req;
+        this.res = res;
+        return this;
+    }
+
+    setMeta(n,v) 
+    {
+        this[n] = v;
+        return this;
+    }
+
+    getMeta(n,dft) 
+    {
+        return (this[n] != null) && this[n] || dft;
+    }
+
+    setData(data)
+    {
+        this.data = data;
+        return this;
+    }
+
+}
+
 class Node
 {
     constructor() {
@@ -53,9 +104,11 @@ class Node
     }
 
     createMessage(data,prevMsg) {
-        let msg = {...prevMsg};
-        msg.data = data;
-        return msg;
+        return new NodeMessage(data,prevMsg);
+    }
+
+    static buildMessage(data,prevMsg) {
+        return new NodeMessage(data,prevMsg);
     }
 
     logExec(message,str,debug) {

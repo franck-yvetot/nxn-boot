@@ -115,7 +115,7 @@ class bootSce
         let comps={};
         aPolicies.forEach(id => {
             let conf = self._getComponentConfig(id,configComponents);
-            let path = self._getComponentPath(id,conf,defaultComponentPath);
+            let path = self._getComponentPath(id,conf,defaultComponentPath,section);
 
             const comp = self._loadComponent(id,path,conf,"middleware",section);
             comps[id]={conf,path,comp};
@@ -191,7 +191,7 @@ class bootSce
         let comps={};
         arraySce.forEachSync(aPolicies, id => {
             let conf = self._getComponentConfig(id,configComponentsLower);
-            let path = self._getComponentPath(id,conf,defaultComponentPath);
+            let path = self._getComponentPath(id,conf,defaultComponentPath,section,type);
             const comp = self._loadComponent(id,path,conf,type,section,fun);
             comps[id]={conf,path,comp};
         });
@@ -285,7 +285,7 @@ class bootSce
         process[section] = {};
         aPolicies.forEach(id => {
             let conf = self._getComponentConfig(id,configComponents);
-            let path = self._getComponentPath(id,conf,defaultComponentPath);
+            let path = self._getComponentPath(id,conf,defaultComponentPath,section,'route');
             self._initRoute(id,path,conf,"route",section);
         });
 
@@ -313,13 +313,26 @@ class bootSce
         return csv.toLowerCase().trim().split(',');
     }
 
-    _getComponentPath(id,compConfig,defaultPath) {
+    _getComponentPath(id,compConfig,defaultPath,section,type) {
         let path;
 
         if(compConfig['path'])
             path = this.bootDir+compConfig['path'];
 
-        else if(defaultPath) {
+        else if(compConfig['upath']) {
+            const upath = compConfig['upath'];
+            let aId = upath.split('@');
+            const app = aId.length>1 ? aId[1] : null;
+            if(app) {
+                const id2 = aId[0];
+                path = `applications/${app}/${section}/${id2}`;
+                if(type && (upath.indexOf('.')==-1))
+                    path += "."+type;       
+            }
+        }
+    
+        if(!path)
+            if(defaultPath) {
             path = defaultPath;
         }
         else
