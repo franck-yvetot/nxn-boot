@@ -1,5 +1,5 @@
 const express = require("express");
-const app = express();
+const {objectSce} = require("@nxn/ext");
 
 class ExpressSce {
 
@@ -7,8 +7,22 @@ class ExpressSce {
     {
         this.config = config;
 
+        if(!ctxt.express)
         ctxt.express = express;
-        ctxt.app = app;
+
+        if(!ctxt.app)
+            ctxt.app = express();
+
+        if(config.static) 
+        {
+            const rootDir = process.cwd();
+            const dirs = config.static;
+            objectSce.forEachSync(dirs, (dir,url)=>{
+                const d = rootDir+'/'+dir;
+                ctxt.app.use(url,ctxt.express.static(d))
+                console.log("Serving static files "+url+" => "+d);            
+            });        
+        }
     }
 
     run(config, ctxt) {

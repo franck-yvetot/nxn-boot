@@ -121,7 +121,8 @@ class bootSce
             comps[id]={conf,path,comp};
         });
 
-        const aPolicies2 = this.reorderDeps(aPolicies,comps);
+        // const aPolicies2 = this.reorderDeps(aPolicies,comps);
+        const aPolicies2 = aPolicies;
 
         aPolicies2.forEach(id => {
             const {conf,path} = comps[id];
