@@ -1,6 +1,7 @@
 const nunjucks = require("nunjucks");
 const {objectSce} = require("@nxn/ext");
 const express = require("express");
+const debug = require("@nxn/debug")('nunjucks');
 
 class nunjucksPolicy {
     constructor() {}
@@ -20,14 +21,16 @@ class nunjucksPolicy {
         {
             const rootDir = process.cwd();
 
-            objectSce.forEachSync(dirs, (desc,url)=>{
+            objectSce.forEachSync(dirs, (desc,url1)=>{
                 let dir = desc.path || desc;
                 let vars = desc.vars || config.vars;
 
                 const d = rootDir+'/'+dir;
                 templateDirs.push(d);
 
-                ctxt.app.get(url, function(req, res){
+                ctxt.app.get(url1, function(req, res){
+                    const { url, path: routePath }  = req ;
+                    debug.log("serving :"+url);
                     res.render('index.html', vars);
                 });                
             });
@@ -35,11 +38,20 @@ class nunjucksPolicy {
         else
             templateDirs = ['templates'];
 
-        // add html render engine
-        nunjucks.configure(templateDirs, {
+        let options = {
             autoescape: true,
             express: ctxt.app
-        });
+        };
+
+        if(config.noCache)
+            options.noCache = true;
+
+        // change tags for avoiding conflicts w/ angularJS ?
+        if(config.tags)
+            options.tags = config.tags;
+            
+        // add html render engine
+        nunjucks.configure(templateDirs, options);
     }
 }
 

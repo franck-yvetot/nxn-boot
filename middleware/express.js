@@ -1,5 +1,6 @@
 const express = require("express");
 const {objectSce} = require("@nxn/ext");
+const debug = require("@nxn/debug")('EXPRESS');
 
 class ExpressSce {
 
@@ -15,6 +16,13 @@ class ExpressSce {
 
         if(config.static) 
         {
+            if(config.log)
+                ctxt.app.use( function ( req, res, next ) {
+                    const { url, method, path: routePath }  = req ;
+                    debug.log(method.toUpperCase()+':'+url) ;
+                    next();
+                } ) ;            
+
             const rootDir = process.cwd();
             const dirs = config.static;
             objectSce.forEachSync(dirs, (dir,url)=>{
