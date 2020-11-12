@@ -2,6 +2,7 @@ const nunjucks = require("nunjucks");
 const {objectSce} = require("@nxn/ext");
 const express = require("express");
 const debug = require("@nxn/debug")('nunjucks');
+const path = require('path'); 
 
 class nunjucksPolicy {
     constructor() {}
@@ -25,7 +26,7 @@ class nunjucksPolicy {
                 let dir = desc.path || desc;
                 let vars = desc.vars || config.vars;
 
-                const d = rootDir+'/'+dir;
+                const d = path.resolve(rootDir, dir);                
                 templateDirs.push(d);
 
                 ctxt.app.get(url1, function(req, res){

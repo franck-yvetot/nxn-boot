@@ -1,6 +1,7 @@
 const express = require("express");
 const {objectSce} = require("@nxn/ext");
 const debug = require("@nxn/debug")('EXPRESS');
+const path = require('path'); 
 
 class ExpressSce {
 
@@ -26,7 +27,8 @@ class ExpressSce {
             const rootDir = process.cwd();
             const dirs = config.static;
             objectSce.forEachSync(dirs, (dir,url)=>{
-                const d = rootDir+'/'+dir;
+                const d = path.resolve(rootDir, dir);
+                
                 ctxt.app.use(url,ctxt.express.static(d))
                 console.log("Serving static files "+url+" => "+d);            
             });        
