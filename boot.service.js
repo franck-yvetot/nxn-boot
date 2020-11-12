@@ -439,11 +439,15 @@ class bootSce
         return injections;
     }
 
+
     _getInjectionsInObj(inj) {
         let injections = {};
         
         objectSce.forEachSync(inj,(id,key)=>{
-            injections[key]=this._getInjectionsInString(id);
+            if(typeof id=="string")
+                injections[key]=this._getInjectionsInString(id);
+            else if(typeof id=="object")
+                injections[key]=this._getInjectionsInObj(id);
         });
 
         return injections;       
