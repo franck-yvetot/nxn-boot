@@ -17,8 +17,8 @@
   },
   "homepage": "https://github.com/franck-yvetot/nxn-boot#readme",
   "dependencies": {
-    "@nxn/config": "^1.0.14",
-    "@nxn/debug": "^1.0.6",
+    "@nxn/config": "^1.0.16",
+    "@nxn/debug": "^1.0.7",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
     "dotenv-expand": "^5.1.0",
