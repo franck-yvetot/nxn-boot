@@ -68,6 +68,13 @@ class Node
 
     }
 
+    // locale string mapping
+    _(s) {
+        if(this.locale)
+            return this.locale._(s);
+        return s;
+    }
+
     static nodeManager() {
         return nodeManager;
     }
@@ -83,6 +90,8 @@ class Node
 
         // set debugger with node id
         this.debug = _debug(this.id());
+
+        this.locale = this.getInjection('locale');
 
         this._status='initialised';
         this._isInit = true;
