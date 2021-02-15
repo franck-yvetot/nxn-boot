@@ -208,16 +208,41 @@ class bootSce
         return process[section];
     }
 
+    _listChildrenInj(inject) {
+        let aInject=[];
+        if(typeof inject == 'array')
+            aInject = inject.join(",").toLowerCase().trim().split(',');
+        else if(typeof inject == 'object')
+        {
+            objectSce.forEachSync(inject,v=> {
+                if(typeof v == 'string')
+                    aInject.push(v);
+                else
+                {
+                    let aSubInj = this._listChildrenInj(v);
+                    aInject = [...aInject,...aSubInj];
+                }
+            });
+            aInject = aInject.join(',').toLowerCase().split(',');
+        }
+        else
+            aInject=inject.toLowerCase().trim().split(',');
+
+        return aInject;
+    }
+
     // topological order : put in basket all components that have :
     // no injection, or all injections already in ordered basket.
     // detects cyclic injections.
     reorderDeps(aPolicies,comps) {
         let aSorted=[]; // ordered array
         let sorted={}; // check if in order array
+        let unsorted=[];
         const n = aPolicies.length;
         let limit = n*2; // limit in case of cyclic dep
         while(aPolicies.length && limit--)
         {
+            unsorted=[];
             for(let i=0;i<aPolicies.length;i++)
             {
                 const id = aPolicies[i];
@@ -225,35 +250,40 @@ class bootSce
                 const comp = comps[id].comp;
                 const inject = (conf.injections||'');
                 if(!inject) 
-                    // no injection 
-                    sorted[id]=true,aSorted.push(id),aPolicies.splice(i,1);
-                else{
-                    let aInject=[];
-                    if(typeof inject == 'array')
-                        aInject = inject.join(",").toLowerCase().trim().split(',');
-                    else if(typeof inject == 'object')
                     {
-                        objectSce.forEachSync(inject,v=>aInject.push(v));
-                        aInject = aInject.join(',').toLowerCase().split(',');
+                    // no injection 
+                    sorted[id]=true;
+                    aSorted.push(id);
+                    aPolicies.splice(i,1);
                     }
                     else
-                        aInject=inject.toLowerCase().trim().split(',');
+                {
+                    let aInject=this._listChildrenInj(inject);
                     
                     let injSorted=true;
                     aInject.forEach(ij=>{
                         if(!sorted[ij] && !comp.__init)
+                        {
                             injSorted=false; // deps not yet in sorted => fails this time
+                            unsorted.push(ij);
+                        }
                     });
+                    
                     if(injSorted)
+                    {
                         // all injections already in ordered array => ok
-                        sorted[id]=true,aSorted.push(id),aPolicies.splice(i,1);    
+                        sorted[id]=true;
+                        aSorted.push(id);
+                        aPolicies.splice(i,1); 
+                    }
                 }
             }
         }
         if(limit<=0)
         {
             const fails = aPolicies.join(',');
-            throw new Error("Cyclic or missing injection not allowed, check injections for : "+fails);
+            const missing = unsorted.join(',');
+            throw new Error("Cyclic or missing injection not allowed, check injections for : "+fails+" missing = "+missing);
         }
 
         return aSorted;

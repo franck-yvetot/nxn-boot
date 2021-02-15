@@ -57,7 +57,7 @@ class NodeMessage
 
 class Node
 {
-    constructor() {
+    constructor(instName=null) {
         this._idx = this._id = nodeManager.addNode(this);
 
         this._status='created';
@@ -65,7 +65,7 @@ class Node
         this._isInit = false;
         this.injections = {}
         this._nodes = [];
-
+        this._instName = instName || this._id;
     }
 
     // locale string mapping
@@ -145,6 +145,10 @@ class Node
 
     id() {
         return this._id || 'node-'+this._idx;
+    }
+
+    instance() {
+        return this._instName;
     }
 
     registerReceivers(injections) {
@@ -258,11 +262,11 @@ class Node
         }
     }
 
-    getInjection(inj,isArray=false) {
+    getInjection(inj,isMultiple=false) {
         if(!this.injections || !this.injections[inj])
             return null;
 
-        if(isArray)
+        if(isMultiple)
             return this.injections[inj];
         else
             return this.injections[inj][0];
