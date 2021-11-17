@@ -35,11 +35,18 @@ class bootSce
 
     run(path,dirPaths,app=null,express=null,withModuleAlias=true)
     {
-        // this.loadConfig(path,dirPaths,this.env||process.env.NODE_ENV);
-        let config = configSce.loadConfig(path,dirPaths,process.env);
+        try 
+        {
+            // this.loadConfig(path,dirPaths,this.env||process.env.NODE_ENV);
+            let config = configSce.loadConfig(path,dirPaths,process.env);
 
-        this.ctxt.config = this.config = config;
-        this.initAll(app,express,withModuleAlias);
+            this.ctxt.config = this.config = config;
+            this.initAll(app,express,withModuleAlias);
+        }
+        catch(error)
+        {
+            debug.error(error.message || error);
+        }
     }
 
     runConfig(config,app=null,express=null,withModuleAlias=true) {
