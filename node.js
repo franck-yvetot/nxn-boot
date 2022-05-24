@@ -83,10 +83,19 @@ class Node
         if(this._isInit)
             return;
 
-        this.config = config;
-        if(this.config.id)
-            this._id = this.config.id;
+        if(config.id)
+            this._id = config.id;
+        
         this.registerReceivers(injections);
+
+        let $config = this.getInjection('$config');
+        if($config && $config.config)
+        {
+            this.config = {...$config.config, ...config};
+            this.$config = $config;
+        }
+        else
+            this.config = config;
 
         // set debugger with node id
         this.debug = _debug(this.id());
@@ -264,7 +273,10 @@ class Node
 
     getInjection(inj,isMultiple=false) {
         if(!this.injections || !this.injections[inj])
-            return null;
+            if(this.$config && this.$config.getInjection)
+                return this.$config.getInjection(inj,isMultiple);
+            else
+                return null;
 
         if(isMultiple)
             return this.injections[inj];
@@ -274,7 +286,10 @@ class Node
 
     getInjections(inj=null) {
         if(!this.injections)
-            return null;
+            if(this.$config && this.$config.getInjections)
+                return this.$config.getInjections(inj);
+            else
+                return null;
 
         if(inj)
             return this.injections[inj];
