@@ -257,25 +257,26 @@ class bootSce
                 const comp = comps[id].comp;
                 const inject = (conf.injections||'');
                 if(!inject) 
-                {
+                    {
                     // no injection 
                     sorted[id]=true;
                     aSorted.push(id);
                     aPolicies.splice(i,1);
-                }
-                else
+                    }
+                    else
                 {
                     let aInject=this._listChildrenInj(inject);
                     
                     let injSorted=true;
-                    aInject.forEach(ij => {
+                    aInject.forEach(ij=>{
                         if(!sorted[ij] && !comp.__init)
                         {
-                            if(!this.getComponent(ij))
-                            {
-                                injSorted=false; // deps not yet in sorted => fails this time
-                                unsorted.push(ij);    
-                            }
+                            /*
+                            let comp2 = this.getComponent(ij);
+                            if(comp2 && !comp2.__init)
+                            */
+                            injSorted=false; // deps not yet in sorted => fails this time
+                            unsorted.push(ij);
                         }
                     });
                     
