@@ -257,22 +257,25 @@ class bootSce
                 const comp = comps[id].comp;
                 const inject = (conf.injections||'');
                 if(!inject) 
-                    {
+                {
                     // no injection 
                     sorted[id]=true;
                     aSorted.push(id);
                     aPolicies.splice(i,1);
-                    }
-                    else
+                }
+                else
                 {
                     let aInject=this._listChildrenInj(inject);
                     
                     let injSorted=true;
-                    aInject.forEach(ij=>{
+                    aInject.forEach(ij => {
                         if(!sorted[ij] && !comp.__init)
                         {
-                            injSorted=false; // deps not yet in sorted => fails this time
-                            unsorted.push(ij);
+                            if(!this.getComponent(ij))
+                            {
+                                injSorted=false; // deps not yet in sorted => fails this time
+                                unsorted.push(ij);    
+                            }
                         }
                     });
                     
@@ -286,7 +289,18 @@ class bootSce
                 }
             }
         }
-        if(limit<=0)
+
+        for (let i=0;i<aPolicies.length;i++)
+        {
+            const id = aPolicies[i];
+            let comp = this.getComponent(id);
+            if(comp)
+            {
+                aPolicies.splice(i,1);
+            }
+        }
+
+        if(limit<=0 && aPolicies.length)
         {
             const fails = aPolicies.join(',');
             const missing = unsorted.join(',');
