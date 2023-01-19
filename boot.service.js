@@ -46,6 +46,7 @@ class bootSce
         catch(error)
         {
             debug.error(error.message || error);
+            throw error;
         }
     }
 
