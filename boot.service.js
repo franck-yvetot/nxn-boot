@@ -2,7 +2,6 @@ const configSce = require('@nxn/config');
 const fs = require('fs');
 const envSce = require("./middleware/env");
 
-
 /*
 var requireRoot = require('rfr');
 requireRoot.setRoot(process.cwd());
@@ -33,7 +32,7 @@ class bootSce
         this.env = env;
     }
 
-    run(path,dirPaths,app=null,express=null,withModuleAlias=true)
+    async run(path,dirPaths,app=null,express=null,withModuleAlias=true)
     {
         try 
         {
@@ -41,7 +40,7 @@ class bootSce
             let config = configSce.loadConfig(path,dirPaths,process.env);
 
             this.ctxt.config = this.config = config;
-            this.initAll(app,express,withModuleAlias);
+            await this.initAll(app,express,withModuleAlias);
         }
         catch(error)
         {
@@ -152,8 +151,9 @@ class bootSce
         return await this.initModules(policies,'node','nodes','init');
     }
 
-    execTests(tests) { 
-        return this.initModules(tests,'test','tests');
+    execTests(tests) {
+        if(process.env.TESTS && process.env.TESTS=="true")
+            return this.initModules(tests,'test','tests');
     }
 
     execRun(run) { 
@@ -349,7 +349,7 @@ class bootSce
     _getActiveComponents(vals,section,env,defaultVal,components) {
         let csv = vals || process.env[env.toUpperCase()] || defaultVal || '*';
 
-        if(csv == '*' || csv == 'all' || csv.startsWith("all "))
+        if(csv == '*' || csv == 'all' || (csv.startsWith && csv.startsWith("all ")))
         {
             let keys = Object.keys(components);
             if(keys.length==0)
@@ -488,7 +488,7 @@ class bootSce
                     else
                         {
                             debug.error("trying to inject unintialised service "+id);
-                            throw new Error("Injection Error unknown service"+id);
+                            throw new Error("Injection Error unknown service "+id);
                         }
         });
 
