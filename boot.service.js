@@ -205,7 +205,7 @@ class bootSce
             comps[id]={conf,path,comp};
         });
 
-        if(section == "services" || section == "nodes" )
+        if(section == "services" || section == "nodes")
             aPolicies = this.reorderDeps(aPolicies,comps);
 
         await arraySce.forEachAsync(aPolicies, async id => {
@@ -343,6 +343,8 @@ class bootSce
             self._initRoute(id,path,conf,"route",section);
         });
 
+        debug.log('ALL ROUTES loaded: ',this.showAllRoutes());
+
         return process[section];
     }
 
@@ -351,6 +353,10 @@ class bootSce
 
         if(csv == '*' || csv == 'all' || (csv.startsWith && csv.startsWith("all ")))
         {
+            for(const c in components)
+                if(components[c].active===false)
+                    delete components[c];
+
             let keys = Object.keys(components);
             if(keys.length==0)
                 return [];
@@ -627,7 +633,7 @@ class bootSce
         // external policy defined as module/class in ../policies/
         try {
             // await fs.promises.access(path+'.js');
-            debug.log('loading route "'+id+'"'+ type +' : '+path);
+            debug.log('LOADING ROUTE "'+id+'"'+ type +' : '+path);
 
             if(compConf['url'])
             {
@@ -665,7 +671,8 @@ class bootSce
                 // registers to global process
                 self._registerComponent(id,section,comp,path);
 
-                debug.log('Endpoint route loaded: '+compConf['url']+' -> '+path);
+                debug.log('ROUTE loaded: '+compConf['url']+' -> '+path,this.showRoutes(router));
+    
                 return true;
             }
             else {
@@ -676,6 +683,44 @@ class bootSce
             debug.error('Error loading route : '+id+' '+err.stack);
             return false;
         }
+    }
+
+    showAllRoutes() 
+    {
+        let _routesInfos = [];
+        this.ctxt.app._router.stack
+        .filter(layer => layer.handle.stack)
+        .forEach(layer1 => {
+            let routes = [];
+            layer1.handle.stack.forEach(layer => {
+                const r = layer.route;
+                routes.push(Object.keys(r.methods).join(",")+" : " +r.path);
+            })
+            _routesInfos.push({regexp:layer1.regexp, name:layer1.name, routes});
+        });
+        
+        return _routesInfos;
+    }
+
+    showRoutes(router) 
+    {
+        var route, routes = [];
+
+        if(router && router.stack)
+            router.stack.forEach(function(middleware)
+            {
+                if(middleware.route){ // routes registered directly on the app
+                    routes.push(middleware.route);
+                } else if(middleware.name === 'router'){ // router middleware 
+                    middleware.handle.stack.forEach(function(handler){
+                        route = handler.route;
+                        route && routes.push(route);
+                    });
+                }
+            });
+
+        routes = routes.map(r => Object.keys(r.methods).join(",")+" : " +r.path);
+        return routes;     
     }
 }
 
