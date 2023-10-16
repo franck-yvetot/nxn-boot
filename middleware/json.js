@@ -1,5 +1,3 @@
-const fileUpload = require('express-fileupload');
-
 class jsonPolicy {
     constructor() {}
 
