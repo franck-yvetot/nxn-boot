@@ -206,7 +206,7 @@ class bootSce
         });
 
         if(section == "services" || section == "nodes")
-            aPolicies = this.reorderDeps(aPolicies,comps);
+            aPolicies = this.reorderDeps(aPolicies,comps,section);
 
         await arraySce.forEachAsync(aPolicies, async id => {
             const {conf,path} = comps[id];
@@ -242,7 +242,7 @@ class bootSce
     // topological order : put in basket all components that have :
     // no injection, or all injections already in ordered basket.
     // detects cyclic injections.
-    reorderDeps(aPolicies,comps) {
+    reorderDeps(aPolicies,comps,section) {
         let aSorted=[]; // ordered array
         let sorted={}; // check if in order array
         let unsorted=[];
@@ -272,12 +272,21 @@ class bootSce
                     aInject.forEach(ij=>{
                         if(!sorted[ij] && !comp.__init)
                         {
-                            /*
-                            let comp2 = this.getComponent(ij);
-                            if(comp2 && !comp2.__init)
-                            */
-                            injSorted=false; // deps not yet in sorted => fails this time
-                            unsorted.push(ij);
+                            if(section == "nodes")
+                            {
+                                // try getting injection from services
+                                let comp2 = this.getComponent(ij);
+                                if(!comp2 || !comp2.__init)
+                                {
+                                    injSorted=false; // deps not yet in sorted => fails this time
+                                    unsorted.push(ij);    
+                                }    
+                            }
+                            else 
+                            {
+                                injSorted=false; // deps not yet in sorted => fails this time
+                                unsorted.push(ij);    
+                            }
                         }
                     });
                     
@@ -306,10 +315,44 @@ class bootSce
         {
             const fails = aPolicies.join(',');
             const missing = unsorted.join(',');
+            this.listMissingInjs(aPolicies,comps);
             throw new Error("Cyclic or missing injection not allowed, check injections for : "+fails+" missing = "+missing);
         }
 
         return aSorted;
+    }
+
+    listMissingInjs(aPolicies,comps)
+    {
+        const n = aPolicies.length;
+        for(let i=0;i<aPolicies.length;i++)
+        {
+            const id = aPolicies[i];
+            const conf = comps[id].conf;
+            const comp = comps[id].comp;
+            const inject = (conf.injections||'');
+            let missing={id,injections:{},unknown:{}};
+            if(inject) 
+            {
+                let aInject=this._listChildrenInj(inject);
+                aInject.forEach(ij=>{
+                    let comp2 = this.getComponent(ij);
+                    if(comp2)
+                    {
+                        if(!comp2.__init)
+                        {
+                            missing.injections[ij]={id:ij, loaded:true, init:false};
+                        }
+                    }
+                    else
+                    {
+                        console.error("unknown injection "+ij);
+                        missing.unknown[ij]={id:ij, loaded:false};
+                    }
+                });
+            }
+            console.error("Cant load comp",missing);
+        }      
     }
 
     initRoutes(policies) { 
@@ -370,7 +413,10 @@ class bootSce
             csv = filtered.join(',');
         }
 
-        return csv.toLowerCase().trim().split(',');
+        if(!csv.toLowerCase)
+            return [];
+
+        return csv.toLowerCase().trim().split(',') || [];
     }
 
     _getComponentPath(id,compConfig,defaultPath,section,type) {
