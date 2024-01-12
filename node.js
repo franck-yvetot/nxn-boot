@@ -271,6 +271,34 @@ class Node
         }
     }
 
+    async sendMessage2(message,nodes) {
+        if(!nodes)
+            nodes = this._nodes;
+
+        if(!message.name)
+            message.name = this.name();
+
+        if(typeof nodes == "string")
+            nodes = this.getInjections(nodes);
+
+        if(typeof nodes.length=="undefined" && nodes._status)
+            this._sendOneMessage(message,nodes);
+        else if(nodes && nodes.length)
+        {
+            let i=0;
+            this._status='sending...';
+            if(!message.name)
+                message.name = this.name();
+
+            await arraySce.forEachAsync(nodes,
+                async (p) => {
+                i++;
+                await this._sendOneMessage(message,p,i)
+            });
+            this._status='sent';
+        }
+    }    
+
     getInjection(inj,isMultiple=false) {
         if(!this.injections || !this.injections[inj])
             if(this.$config && this.$config.getInjection)
