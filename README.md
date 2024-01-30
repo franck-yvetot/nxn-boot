@@ -60,3 +60,30 @@ node index.js
 nb. the cli tool is very convenient for generating services and nodes. It needs to be improved so that we can generate the main app, configuration, etc. and alos update the config files automatically when a node or service is added. This will come soon, although the focus now is on the nodes themselves and further integration with Google products and other APIs. In its current version, it is similar to Angular CLI tool for generating components : it generates code. But like Angular CLI, it idoesn't yet declare the components in the list of modules/nodes config. So still a bit manual. The goal it to complete it so that it goes the extra mile and declare the node/service in the application config. Just like node-red does when a node is added to the config....
 
 The latest version of @nxn/config is very promising as it provides lots of flexibility in writing configuration with variables, environements and inclusion of other files.. We'll come back to that point later as this opens paths to other ideas...
+
+# SAMPLE CREATION OF A PROJECT
+
+## create project folder
+
+mkdir ./project1
+
+cd project1
+
+## install nxn boot and cli
+npm install @nxn/boot
+
+npm install @nxn/cli
+
+NB. nxg is then available for generating project structure
+
+## create project structure
+
+nxg client default
+
+- this creates a basic project structure
+
+npm install
+- intall dependencies 
+
+node index.js default config
+- try basic project

@@ -1,3 +1,5 @@
+// @ts-check
+
 const _debug = require("@nxn/debug");
 
 const debug = _debug("NODE");
@@ -6,6 +8,9 @@ const nodeManager = require("./node_manager");
 
 class NodeMessage 
 {
+    req;
+    res;
+
     constructor(data=null,prevMsg=null) 
     {
         if(prevMsg)
@@ -55,7 +60,10 @@ class NodeMessage
 
 }
 
-class Node
+/** @typedef {import('@nxn_boot').IFlowNode} IFlowNode  */
+
+/** @extends {IFlowNode} */
+class FlowNode
 {
     constructor(instName=null) {
         this._idx = this._id = nodeManager.addNode(this);
@@ -243,7 +251,7 @@ class Node
         return true;
     }
 
-    sendMessage(message,nodes) {
+    sendMessage(message,nodes = null) {
         if(!nodes)
             nodes = this._nodes;
 
@@ -271,7 +279,10 @@ class Node
         }
     }
 
-    async sendMessage2(message,nodes) {
+    // alias
+    sendMessage2 = this.sendMessageAsync;
+
+    async sendMessageAsync(message,nodes) {
         if(!nodes)
             nodes = this._nodes;
 
@@ -360,4 +371,4 @@ class Node
     }
 }
 
-module.exports = Node;
+module.exports = FlowNode;

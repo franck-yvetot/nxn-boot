@@ -13,7 +13,7 @@ const {objectSce,arraySce} = require("@nxn/ext");
 // const debug = require("./debug.service")("BOOT");
 let debug= console;
 
-class bootSce 
+class BootSce 
 {
     constructor() {
         this.app = null;
@@ -770,4 +770,5 @@ class bootSce
     }
 }
 
-module.exports = new bootSce();
+module.exports = new BootSce();
+module.exports.BootSce = BootSce;
