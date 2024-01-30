@@ -1,7 +1,7 @@
 declare module '@nxn_boot' 
 {
 
-    import { BootSce} from "../boot.service";
+    import { BootSce} from ".boot.service";
     export { BootSce };
 
     export interface NxnComponent 
