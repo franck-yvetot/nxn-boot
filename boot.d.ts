@@ -13,9 +13,9 @@ declare module '@nxn_boot'
          * @param injections 
          */
         init(
-            config:Record<string,any> = null,
-            ctxt : {express,app} = null,
-            injections: NxnComponent[] = null
+            config:Record<string,any>,
+            ctxt : {express,app},
+            injections: NxnComponent[]
             );
 
 
@@ -43,7 +43,7 @@ declare module '@nxn_boot'
          */
         getInjection(
             inj : string,
-            isMultiple=false) : NxnComponent;
+            isMultiple) : NxnComponent;
 
         /**
          * get injections, by name or else, get all injections
@@ -52,8 +52,8 @@ declare module '@nxn_boot'
          * @param isMultiple : is it a single injection or an array 
          */
         getInjections(
-            inj : string=null,
-            isMultiple : boolean = false);
+            inj : string,
+            isMultiple : boolean);
     }
 
     export interface IFlowNodeMessage 
