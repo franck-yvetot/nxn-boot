@@ -118,6 +118,19 @@ class FlowNode
         return this._isInit;
     }
 
+    /**
+     * this function should be redefined in all components to check the component health.
+     * 
+     * a good practive is to check injections health in a component, by using isOk();
+     * isOk should check its state and return true if the state allows its use by parent component
+     * (meaning initialised and with all dependencies ok.)
+     * 
+     * @returns {boolean}
+     */
+    isOk() {
+        return this._isInit;
+    }    
+
     invalidParam(p) {
         throw new Error(this.id() +" missing configuration attribute "+p);
     }
