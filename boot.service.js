@@ -73,8 +73,11 @@ class BootSce
         if(!(withModuleAlias===false))
             require('module-alias/register');
 
-        // security middleware
-        this.initPolicies();
+        // init modules : group of services, routes etc.
+        await this.initApplications();
+
+            // security middleware
+        this.initMiddleware();
 
         debug=require("@nxn/debug")("BOOT");
 
@@ -93,7 +96,73 @@ class BootSce
         this.execRun() 
     }
 
-    initPolicies(policies) { 
+    /**
+     * 
+     * @param {section name} section 
+     * @returns 
+     */
+    initApplications(policies=null) {
+        let self = this;
+        const section = 'components';
+
+
+        if(!self.config[section])
+            self.config[section] = {};
+
+        const configSection = self.config[section];
+
+        if(!configSection["configuration"])
+            configSection["configuration"] = {};
+        const configComponents = configSection["configuration"];
+
+        if(!policies)
+            policies = self.config[section].load || '';
+
+        if(!policies)
+            return {};
+
+        const aPolicies = self._getActiveComponents(policies,section,section,'*',configComponents);
+        
+        debug.log("========== LOADING "+section+" : "+aPolicies.join(','));
+
+        // init main configuration
+        let sections = ['services','routes','nodes','tests','run'];
+        for (let sect of sections) 
+        {
+            if(!this.config[sect])
+                this.config[sect] = {configuration:{}}
+
+            if(!this.config[sect].configuration)            
+                this.config[sect].configuration = {}
+        }
+    
+        // add application coomponents to main config sections
+        for(let compId of aPolicies)
+        {
+            const compDesc = configComponents[compId];
+            for (let sect of sections)
+            {
+                if(compDesc[sect])
+                {
+                    for (let id in compDesc[sect])
+                    {
+                        this.config[sect].configuration[id] = compDesc[sect][id];
+                    }
+                }
+            }
+        }
+
+        return this.config;
+    }
+
+    /**
+     * init middlaware components
+     * 
+     * @param {*} policies 
+     * @returns 
+     */
+    initMiddleware(policies=null) 
+    { 
         let self = this;
         const section = 'middleware';
         const ENV_DIR = section+'_DIR';
@@ -139,9 +208,11 @@ class BootSce
         return process[section];
     }
 
+    /*
     reorderDeps(aPolicies) {
         return aPolicies;
     }
+    */
 
     async initServices(policies) { 
         return await this.initModules(policies,'service','services','init');
