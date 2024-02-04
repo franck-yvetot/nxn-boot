@@ -105,7 +105,6 @@ class BootSce
         let self = this;
         const section = 'components';
 
-
         if(!self.config[section])
             self.config[section] = {};
 
@@ -113,7 +112,14 @@ class BootSce
 
         if(!configSection["configuration"])
             configSection["configuration"] = {};
-        const configComponents = configSection["configuration"];
+        let configComponents = configSection["configuration"];
+
+        // recursively get children components
+        if(configComponents)
+        {
+            let childComponents = this._loadChildComponents(configComponents);
+            configComponents = {...configComponents, ...childComponents};
+        }
 
         if(!policies)
             policies = self.config[section].load || '';
@@ -153,6 +159,25 @@ class BootSce
         }
 
         return this.config;
+    }
+
+    _loadChildComponents(configComponents) 
+    {
+        if(configComponents)
+        {
+            for (let compId in configComponents)
+            {
+                let childComp = configComponents[compId];
+                let childComponents = childComp?.components || null;
+                if(childComponents)
+                {
+                    let childComponents2 = this._loadChildComponents(childComponents)
+                    configComponents = {...configComponents, ...childComponents2};
+                }
+            }
+        }
+
+        return configComponents;
     }
 
     /**
