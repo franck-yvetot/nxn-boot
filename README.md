@@ -101,6 +101,66 @@ npm install
     node index.js default config
 ```
 
+## create a service
+
+create service "/applications/module1/services/sce1.service.js" in application module "module1"
+
+```shell
+    nxg service module1 sce1
+```
+
+generates a new file.
+
+add it in configuration:
+
+```yaml
+
+services:
+    configuration:
+        ...
+        sce1:
+            upath: sce1@module1
+```
+
+## create a test for that same service
+
+creates a class "/applications/module1/tests/sce1.test.js" in application module "module1"
+
+```shell
+    nxg test module1 sce1
+```
+
+add it in configuration:
+
+```yaml
+
+tests:
+    configuration:
+        ...
+        sce1:
+            upath: sce1@module1
+```
+
+## create a route for that same service
+
+creates a class "/applications/module1/routes/api1.route.js" in application module "module1"
+
+```shell
+    nxg route module1 api1
+```
+
+add it in configuration:
+
+```yaml
+
+routes:
+    configuration:
+        ...
+        api1:
+            url: /api1
+            upath: api1@module1
+```
+
 
 ## 03/02/2024 added components in config
 
