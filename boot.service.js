@@ -91,7 +91,7 @@ class BootSce
         await this.initRoutes();
 
         // exec tests
-        this.execTests();
+        await this.execTests();
 
         this.execRun() 
     }
@@ -247,13 +247,25 @@ class BootSce
         return await this.initModules(policies,'node','nodes','init');
     }
 
-    execTests(tests) {
-        if(process.env.TESTS && process.env.TESTS=="true")
-            return this.initModules(tests,'test','tests');
+    async execTests(tests) {
+        try 
+        {
+            if(process.env.TESTS && process.env.TESTS=="true")
+            {
+                return await this.initModules(tests,'test','tests');
+            }
+        } 
+        catch (error) {
+            console.error("TESTS FAILED",error);
+        }
     }
 
-    execRun(run) { 
-        return this.initModules(run,'run','run','run');
+    execRun(run) 
+    { 
+        if(process.env.TESTS && process.env.TESTS=="true")
+            console.log("TEST MODE : do not execute RUN section");
+        else
+            return this.initModules(run,'run','run','run');
     }
 
     async initModules(policies,type,section,fun="init") { 
