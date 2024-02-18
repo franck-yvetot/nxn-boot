@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "test",
-    "build": "npm version patch && git commit -am 'version' && git push && npm publish"
+    "build": "npm version patch && git push && npm publish"
   },
   "repository": {
     "type": "git",
