@@ -565,11 +565,22 @@ class BootSce
         if(compConfig['path'])
             path = this.bootDir+compConfig['path'];
 
-        else if(compConfig['upath']) {
+        else if(compConfig['upath']) 
+        {
             const upath = compConfig['upath'];
             let aId = upath.split('@');
             const app = aId.length>1 ? aId[1] : null;
-            if(app) {
+            if(app && app.startsWith("nxn"))
+            {
+                // nxn module, ex. locale@nxn/db 
+                const id2 = aId[0];
+                path = `node_modules/@${app}/${id2}`;
+                if(type && (upath.indexOf('.')==-1))
+                    path += "."+type;       
+            }
+            else if(app) 
+            {
+                // regular application module db@app1
                 const id2 = aId[0];
                 const aId2 = id2.split('.');
                 section = aId2.length>1 ? aId2[1]+"s" : section;
@@ -651,6 +662,9 @@ class BootSce
         else
         {
             if(path.startsWith('applications'))
+                //comp = requireRoot(path);
+                comp = require(process.cwd()+'/'+path);
+            else if(path.startsWith('node_modules'))
                 //comp = requireRoot(path);
                 comp = require(process.cwd()+'/'+path);
             else
