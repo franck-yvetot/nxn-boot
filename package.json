@@ -4,7 +4,8 @@
   "description": "boot framework, config based and services, application components, API/routes, middleware, code gen.",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "test",
+    "build" : "npm version patch && git commit -am 'version' && git push && npm publish"
   },
   "repository": {
     "type": "git",
