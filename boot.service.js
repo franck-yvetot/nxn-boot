@@ -97,6 +97,7 @@ class BootSce
     }
 
     /**
+     * init application components
      * 
      * @param {section name} section 
      * @returns 
@@ -141,7 +142,14 @@ class BootSce
             if(!this.config[sect].configuration)            
                 this.config[sect].configuration = {}
         }
-    
+
+        // list added components
+        let added={}
+        for (let sect of sections)
+        {
+            added[section] = [];
+        }
+
         // add application coomponents to main config sections
         for(let compId of aPolicies)
         {
@@ -153,31 +161,55 @@ class BootSce
                     for (let id in compDesc[sect])
                     {
                         this.config[sect].configuration[id] = compDesc[sect][id];
+                        added[section].push(id);
                     }
                 }
             }
         }
 
+        // recap of loaded components
+        for (let sect of sections)
+        {
+            debug.log("COMPONENTS loaded "+sect+" : "+added[section].join(","));
+        }
+
+        debug.log("Loaded");
+
         return this.config;
     }
 
-    _loadChildComponents(configComponents) 
+    /**
+     *  recursively load children components
+     * 
+     * @param {*} configComponents 
+     * @param {*} compLevel component nesting level added as suffix to avoid name clashes
+     * @returns 
+     */
+    _loadChildComponents(configComponents,compLevel = 0) 
     {
+        let configComponents2 = {} 
         if(configComponents)
         {
             for (let compId in configComponents)
             {
+                // get component
                 let childComp = configComponents[compId];
+
+                // if component has sub components, recursivly add them
                 let childComponents = childComp?.components || null;
                 if(childComponents)
                 {
-                    let childComponents2 = this._loadChildComponents(childComponents)
-                    configComponents = {...configComponents, ...childComponents2};
+                    let childComponents2 = this._loadChildComponents(childComponents,compLevel+1)
+                    configComponents2 = {...configComponents2, ...childComponents2};
+                }
+                else
+                {
+                    configComponents2[compId+compLevel] = childComp;
                 }
             }
         }
 
-        return configComponents;
+        return configComponents2;
     }
 
     /**
