@@ -275,7 +275,9 @@ class FlowNode
             nodes = this.getInjections(nodes);
 
         if(typeof nodes.length=="undefined" && nodes._status)
+        {
             this._sendOneMessage(message,nodes);
+        }
         else if(nodes && nodes.length)
         {
             let i=0;
@@ -295,7 +297,8 @@ class FlowNode
     // alias
     sendMessage2 = this.sendMessageAsync;
 
-    async sendMessageAsync(message,nodes) {
+    async sendMessageAsync(message,nodes) 
+    {
         if(!nodes)
             nodes = this._nodes;
 
@@ -306,7 +309,9 @@ class FlowNode
             nodes = this.getInjections(nodes);
 
         if(typeof nodes.length=="undefined" && nodes._status)
-            this._sendOneMessage(message,nodes);
+        {
+            await this._sendOneMessage(message,nodes);
+        }            
         else if(nodes && nodes.length)
         {
             let i=0;
@@ -354,12 +359,14 @@ class FlowNode
             this.sendMessage({name:this.name(),data:data},this.injections.errors);            
     }
     
-    async _sendOneMessage(message,node,i=0) {
+    async _sendOneMessage(message,node,i=0) 
+    {
         const name = message.name || '';
-        if(node.id) {
-        this.log(" ---> ["+ node.id()+ "] send(" + name + ")") ;
-        await node.processMessage(message);
-    }
+        if(node.id) 
+        {
+            this.log(" ---> ["+ node.id()+ "] send(" + name + ")") ;
+            await node.processMessage(message);
+        }
         else 
             throw new Error("node unknown");
     }
