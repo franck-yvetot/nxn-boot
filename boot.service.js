@@ -448,6 +448,7 @@ class BootSce
             if(comp)
             {
                 aPolicies.splice(i,1);
+                aSorted.push(id);
             }
         }
 
