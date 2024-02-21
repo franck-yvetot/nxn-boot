@@ -69,3 +69,5 @@ class AsyncContext
 }
 
 module.exports = new AsyncContext();
+
+module.exports.AsyncContext = AsyncContext;
