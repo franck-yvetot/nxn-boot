@@ -382,12 +382,15 @@ class BootSce
     // topological order : put in basket all components that have :
     // no injection, or all injections already in ordered basket.
     // detects cyclic injections.
-    reorderDeps(aPolicies,comps,section) {
+    reorderDeps(aPolicies,comps,section) 
+    {
         let aSorted=[]; // ordered array
         let sorted={}; // check if in order array
         let unsorted=[];
+    
         const n = aPolicies.length;
         let limit = n*2; // limit in case of cyclic dep
+    
         while(aPolicies.length && limit--)
         {
             unsorted=[];
@@ -397,19 +400,23 @@ class BootSce
                 const conf = comps[id].conf;
                 const comp = comps[id].comp;
                 const inject = (conf.injections||'');
+
+                // comp has injections?
                 if(!inject) 
-                    {
+                {
                     // no injection 
                     sorted[id]=true;
                     aSorted.push(id);
                     aPolicies.splice(i,1);
-                    }
-                    else
+                }
+                else
                 {
+                    // has injections
                     let aInject=this._listChildrenInj(inject);
                     
                     let injSorted=true;
-                    aInject.forEach(ij=>{
+                    aInject.forEach(ij=>
+                    {
                         if(!sorted[ij] && !comp.__init)
                         {
                             if(section == "nodes")
@@ -441,17 +448,20 @@ class BootSce
             }
         }
 
+        // check policies not yet match
         for (let i=0;i<aPolicies.length;i++)
         {
             const id = aPolicies[i];
             let comp = this.getComponent(id);
             if(comp)
             {
-                aPolicies.splice(i,1);
+                // component loaded => remove from list
                 aSorted.push(id);
+                aPolicies.splice(i,1);
             }
         }
 
+        // check if we have sorted all components
         if(limit<=0 && aPolicies.length)
         {
             const fails = aPolicies.join(',');
