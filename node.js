@@ -94,7 +94,8 @@ class FlowNode
         if(config.id)
             this._id = config.id;
         
-        let $config = this.getInjection('$config');
+        // load shared config if any
+        let $config = injections.length && injections[0]?.$config && injections[0]?.$config[0];
         if($config && $config.config)
         {
             this.config = {...$config.config, ...config};
@@ -103,12 +104,16 @@ class FlowNode
         else
             this.config = config;
 
+        // now register all injections
         this.registerReceivers(injections);
 
         // set debugger with node id
         this.debug = _debug(this.id());
 
         this.locale = this.getInjection('locale');
+
+        // if(this.autoLoad)
+            this.autoSetVarsFromInjections();
 
         this._status='initialised';
         this._isInit = true;
@@ -339,6 +344,35 @@ class FlowNode
             return this.injections[inj];
         else
             return this.injections[inj][0];
+    }
+
+
+    /**
+     * automatically add injections to node, without needing to call getInjection().
+     * this only works if the object has declared the variable with exact same name
+     * as the inejction, and is not already set (it must be undefined to be populated here)
+     * 
+     * @returns {void}
+     */
+    autoSetVarsFromInjections() 
+    {
+        if(!this.injections)
+            return;
+
+        for(let inj in this.injections) 
+        {
+            if(this.hasOwnProperty(inj))
+            {
+                if(this[inj] == undefined)
+                {
+                    let injection = this.injections[inj];
+                    if(injection?.length > 1)
+                        this[inj] = this.injections[inj];
+                    else
+                        this[inj] = this.injections[inj][0];
+                }
+            }
+        }
     }
 
     getInjections(inj=null) {
