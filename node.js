@@ -94,8 +94,6 @@ class FlowNode
         if(config.id)
             this._id = config.id;
         
-        this.registerReceivers(injections);
-
         let $config = this.getInjection('$config');
         if($config && $config.config)
         {
@@ -104,6 +102,8 @@ class FlowNode
         }
         else
             this.config = config;
+
+        this.registerReceivers(injections);
 
         // set debugger with node id
         this.debug = _debug(this.id());
