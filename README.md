@@ -321,3 +321,109 @@ class Tests extends FlowNode
 
 module.exports = new Tests()
 ```
+
+## Managing injections
+
+Injections are other services that have been initialised and can be used in a service, a route, a test, or a node.
+
+Injections are declared in the configuration.
+
+example:
+```yml
+    # database
+    firestore:
+      upath: firestore@googleapi
+      conPath: .firestore
+      # apply_client_id = coll_prefix | coll_suffix | none | db
+      apply_client_id: coll_suffix
+
+    # i8n locale
+    gdrive_locale:
+      path: "@nxn/db/locale.service"
+      default: en
+      langs:
+        en: $ref(applications/drive_indexer/locales/en_gdrive.strings)
+
+    # db model class : manage queries to the database. Abstracts the actual db and queries.
+    gdrive_model:
+      path: "@nxn/db/db_model.service"
+      schema: $ref(applications/drive_indexer/models/gdrive.schema)
+      injections:
+        db: firestore
+        locale: gdrive_locale
+
+    # File service : manage gFile objects. It interacts with storage by using above db model
+    gdrive_sce:
+      upath: gdrive@drive_indexer
+      injections:
+        model: gdrive_model        
+```
+
+**gdrive_model** service uses **firestore** and **gdrive_locale** services as injections.
+
+And **gdrive_sce** gets **gdrive_model** as injection.
+
+### How are injections available in services
+
+Injections and config parameters are provided to the objects declared with their init() function.
+
+```js
+/** my service description here */
+class GFileSce extends FlowNode
+{
+    /**
+     * DB model
+     * @type {DbModel} */
+    model;
+
+    constructor(instName) {
+        super(instName);
+    }
+
+    /** init the service with a config */
+    async init(config,ctxt,...injections) {
+        super.init(config,ctxt,injections); 
+
+        /** get DB Model */
+        this.model = this.getInjection('model');
+    }
+    ...
+}
+
+```
+the **super.init()** function gets injections and organise them in the object.
+The **GFileSce** service adds the **model** injection as a member variable, by using **getInjection()**.
+
+```js
+    /** get DB Model */
+    this.model = this.getInjection('model');
+```
+
+NB. injections can be **AUTOMATICALLY added as member variables** if:
+1) the local variable is **declared** in the class
+2) the local variable has the **same name as the injection**
+3) the variable is not yet defined (its **value must be undefined**)
+
+The above example can then be rewritten without adding a getInjection() call in the init:
+
+```js
+/** my service description here */
+class GFileSce extends FlowNode
+{
+    /**
+     * DB model (automatically loaded from injection)
+     * @type {DbModel} */
+    model;
+
+    constructor(instName) {
+        super(instName);
+    }
+
+    /** init the service with a config */
+    async init(config,ctxt,...injections) {
+        super.init(config,ctxt,injections); 
+    }
+    ...
+}
+
+```
