@@ -87,7 +87,7 @@ class FlowNode
         return nodeManager;
     }
 
-    init(config,ctxt,injections) {
+    init(config,ctxt,injections,autoInject=true) {
         if(this._isInit)
             return;
 
@@ -112,7 +112,7 @@ class FlowNode
 
         this.locale = this.getInjection('locale');
 
-        // if(this.autoLoad)
+        if(autoInject)
             this.autoSetVarsFromInjections();
 
         this._status='initialised';
