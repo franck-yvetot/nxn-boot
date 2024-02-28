@@ -74,6 +74,8 @@ class BootSce
             require('module-alias/register');
 
         // init modules : group of services, routes etc.
+        await this.initApplicationsModules();
+
         await this.initApplications();
 
             // security middleware
@@ -118,7 +120,7 @@ class BootSce
         // recursively get children components
         if(configComponents)
         {
-            let childComponents = this._loadChildComponents(configComponents);
+            let childComponents = this._loadChildComponents(configComponents,0,"config","component");
             configComponents = {...configComponents, ...childComponents};
         }
 
@@ -179,15 +181,100 @@ class BootSce
     }
 
     /**
+     * init application components
+     * 
+     * @param {section name} section 
+     * @returns 
+     */
+    initApplicationsModules(policies=null) {
+        let self = this;
+        const section = 'modules';
+
+        if(!self.config[section])
+            self.config[section] = {};
+
+        const configSection = self.config[section];
+
+        if(!configSection["configuration"])
+            configSection["configuration"] = {};
+        let configComponents = configSection["configuration"];
+
+        // recursively get children components
+        if(configComponents)
+        {
+            let childComponents = this._loadChildComponents(configComponents,0,"config","module");
+            configComponents = {...configComponents, ...childComponents};
+        }
+
+        if(!policies)
+            policies = self.config[section].load || '';
+
+        if(!policies)
+            return {};
+
+        const aPolicies = self._getActiveComponents(policies,section,section,'*',configComponents);
+        
+        debug.log("========== LOADING "+section+" : "+aPolicies.join(','));
+
+        // init main configuration
+        let sections = ['services','routes','nodes','tests','run'];
+        for (let sect of sections) 
+        {
+            if(!this.config[sect])
+                this.config[sect] = {configuration:{}}
+
+            if(!this.config[sect].configuration)            
+                this.config[sect].configuration = {}
+        }
+
+        // list added components
+        let added={}
+        for (let sect of sections)
+        {
+            added[section] = [];
+        }
+
+        // add application coomponents to main config sections
+        for(let compId of aPolicies)
+        {
+            const compDesc = configComponents[compId];
+            for (let sect of sections)
+            {
+                if(compDesc[sect])
+                {
+                    for (let id in compDesc[sect])
+                    {
+                        this.config[sect].configuration[id] = compDesc[sect][id];
+                        added[section].push(id);
+                    }
+                }
+            }
+        }
+
+        // recap of loaded components
+        for (let sect of sections)
+        {
+            debug.log("MODULES loaded "+sect+" : "+added[section].join(","));
+        }
+
+        debug.log("Loaded");
+
+        return this.config;
+    }    
+
+    /**
      *  recursively load children components
      * 
      * @param {*} configComponents 
      * @param {*} compLevel component nesting level added as suffix to avoid name clashes
      * @returns 
      */
-    _loadChildComponents(configComponents,compLevel = 0) 
+    _loadChildComponents(configComponents,compLevel = 0,section="config",type="module")
     {
         let configComponents2 = {} 
+        const ENV_DIR = section+'_DIR';
+        let defaultComponentPath = this._getDefaultComponentPath(section,ENV_DIR);
+
         if(configComponents)
         {
             for (let compId in configComponents)
@@ -195,11 +282,17 @@ class BootSce
                 // get component
                 let childComp = configComponents[compId];
 
+                if(childComp.upath)
+                {
+                    let path = this._getComponentPath(compId,childComp,defaultComponentPath,section,type);
+                    childComp = configSce.loadConfig(path,null,process.env);                    
+                }
+
                 // if component has sub components, recursivly add them
                 let childComponents = childComp?.components || null;
                 if(childComponents)
                 {
-                    let childComponents2 = this._loadChildComponents(childComponents,compLevel+1)
+                    let childComponents2 = this._loadChildComponents(childComponents,compLevel+1,section,type)
                     configComponents2 = {...configComponents2, ...childComponents2};
                 }
                 else
