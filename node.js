@@ -279,6 +279,9 @@ class FlowNode
         if(typeof nodes == "string")
             nodes = this.getInjections(nodes);
 
+        if(!nodes)
+            return;
+                    
         if(typeof nodes.length=="undefined" && nodes._status)
         {
             this._sendOneMessage(message,nodes);
