@@ -37,9 +37,9 @@ class BootSce
         try 
         {
             // this.loadConfig(path,dirPaths,this.env||process.env.NODE_ENV);
-            let config = configSce.loadConfig(path,dirPaths,process.env);
+            // let config = configSce.loadConfig(path,dirPaths,process.env);
+            let config = await this.loadConfig(path,dirPaths);
 
-            this.ctxt.config = this.config = config;
             await this.initAll(app,express,withModuleAlias);
         }
         catch(error)
@@ -54,12 +54,21 @@ class BootSce
         this.initAll(app,express,withModuleAlias);
     }
 
-    loadConfig(path,dirPaths,env) {
-        this.ctxt.config = this.config = configSce.loadConfig(path,dirPaths);
+    async loadConfig(path,dirPaths,env) 
+    {
+        // load config
+        this.ctxt.config = this.config = configSce.loadConfig(path,dirPaths,env || process.env);
 
         // apply variables if any
         if(this.config.variables && this.config.variables.path)
-        configSce.applyVariables(this.config, this.config.variables.path);
+            configSce.applyVariables(this.config, this.config.variables.path);
+
+        // then map components and modules
+        // init modules : group of services, routes etc.
+        await this.initApplicationsModules();
+        await this.initApplications();
+
+        return this.config;
     }
 
     async initAll(app,express,withModuleAlias) {
@@ -74,9 +83,8 @@ class BootSce
             require('module-alias/register');
 
         // init modules : group of services, routes etc.
-        await this.initApplicationsModules();
-
-        await this.initApplications();
+        // await this.initApplicationsModules();
+        // await this.initApplications();
 
             // security middleware
         this.initMiddleware();
