@@ -300,7 +300,8 @@ class BootSce
                 let childComponents = childComp?.components || null;
                 if(childComponents)
                 {
-                    let childComponents2 = this._loadChildComponents(childComponents,compLevel+1,section,type)
+                    let type2 = "component"
+                    let childComponents2 = this._loadChildComponents(childComponents,compLevel+1,section,type2)
                     configComponents2 = {...configComponents2, ...childComponents2};
                 }
                 else
