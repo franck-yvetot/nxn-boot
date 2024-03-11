@@ -194,35 +194,40 @@ class BootSce
      * @param {section name} section 
      * @returns 
      */
-    initApplicationsModules(policies=null) {
+    initApplicationsModules(modules=null) 
+    {
         let self = this;
         const section = 'modules';
 
         if(!self.config[section])
             self.config[section] = {};
 
-        const configSection = self.config[section];
+        const moduleSection = self.config[section];
 
-        if(!configSection["configuration"])
-            configSection["configuration"] = {};
-        let configComponents = configSection["configuration"];
+        if(!moduleSection["configuration"])
+            moduleSection["configuration"] = {};
+
+        let configModules = moduleSection["configuration"];
+
+        debug.log("========== LOADING MODULES  : ", configModules);
 
         // recursively get children components
-        if(configComponents)
+        if(configModules)
         {
-            let childComponents = this._loadChildComponents(configComponents,0,"config","module");
-            configComponents = {...configComponents, ...childComponents};
+            const nestedLevel = 0;
+            let childComponents = this._loadChildComponents(configModules,nestedLevel,"config","module");
+            configModules = {...configModules, ...childComponents};
         }
 
-        if(!policies)
-            policies = self.config[section].load || '';
+        if(!modules)
+            modules = self.config[section].load || '';
 
-        if(!policies)
+        if(!modules)
             return {};
 
-        const aPolicies = self._getActiveComponents(policies,section,section,'*',configComponents);
+        const aModules = self._getActiveComponents(modules,section,section,'*',configModules);
         
-        debug.log("========== LOADING "+section+" : "+aPolicies.join(','));
+        debug.log("========== LOADING "+section+" : "+aModules.join(','));
 
         // init main configuration
         let sections = ['services','routes','nodes','tests','run'];
@@ -243,9 +248,9 @@ class BootSce
         }
 
         // add application coomponents to main config sections
-        for(let compId of aPolicies)
+        for(let compId of aModules)
         {
-            const compDesc = configComponents[compId];
+            const compDesc = configModules[compId];
             for (let sect of sections)
             {
                 if(compDesc[sect])
@@ -287,6 +292,8 @@ class BootSce
         {
             for (let compId in configComponents)
             {
+                debug.log("LOADING "+type+" : "+compId+"...");
+
                 // get component
                 let childComp = configComponents[compId];
 
@@ -301,13 +308,19 @@ class BootSce
                 if(childComponents)
                 {
                     let type2 = "component"
+                    debug.log("\n==== LOADING "+type2+"s for "+type+" "+compId+"...");
+
                     let childComponents2 = this._loadChildComponents(childComponents,compLevel+1,section,type2)
                     configComponents2 = {...configComponents2, ...childComponents2};
                 }
-                else
+
+                if(childComp)
                 {
                     configComponents2[compId+compLevel] = childComp;
+                    debug.log("\n==== LOADED "+type+" : "+compId+" (direct children) ==> OK",childComp);                   
                 }
+
+                debug.log("\n=================================================\n\n");
             }
         }
 
@@ -489,11 +502,19 @@ class BootSce
         let aSorted=[]; // ordered array
         let sorted={}; // check if in order array
         let unsorted=[];
+        let unknown=[];
     
         const n = aPolicies.length;
         let limit = n*2; // limit in case of cyclic dep
-    
-        while(aPolicies.length && limit--)
+
+        const policiesLookUp = aPolicies.reduce((lookup, p) => {
+            lookup[p] = true;
+            return lookup;
+          },{});
+        
+        let hasUnknown = false;
+
+        while(aPolicies.length && limit-- && !hasUnknown)
         {
             unsorted=[];
             for(let i=0;i<aPolicies.length;i++)
@@ -509,7 +530,8 @@ class BootSce
                     // no injection 
                     sorted[id]=true;
                     aSorted.push(id);
-                    aPolicies.splice(i,1);
+                    // aPolicies.splice(i,1);
+                    aPolicies[i] = null;
                 }
                 else
                 {
@@ -531,9 +553,25 @@ class BootSce
                                     unsorted.push(ij);    
                                 }    
                             }
+                            else if(!policiesLookUp[ij]) 
+                            {
+                                // this policy is unknown
+                                // deps not yet in sorted => fails this time
+                                injSorted=false; 
+                                unsorted.push(ij); 
+                                hasUnknown = true;
+
+                                unknown.push(
+                                    {
+                                        injection:ij,
+                                        neededBy:id
+                                    }
+                                );
+                            }                            
                             else 
                             {
-                                injSorted=false; // deps not yet in sorted => fails this time
+                                // deps not yet in sorted => fails this time
+                                injSorted=false; 
                                 unsorted.push(ij);    
                             }
                         }
@@ -544,10 +582,15 @@ class BootSce
                         // all injections already in ordered array => ok
                         sorted[id]=true;
                         aSorted.push(id);
-                        aPolicies.splice(i,1); 
+                        
+                        // aPolicies.splice(i,1); 
+                        aPolicies[i] = null;
                     }
                 }
             }
+
+            // remove policies that have been sorted
+            aPolicies = aPolicies.filter(id => !!id);
         }
 
         // check policies not yet match
@@ -564,12 +607,20 @@ class BootSce
         }
 
         // check if we have sorted all components
-        if(limit<=0 && aPolicies.length)
+        if(limit<=0 && aPolicies.length || hasUnknown)
         {
             const fails = aPolicies.join(',');
             const missing = unsorted.join(',');
+            let aUnknown = unknown.map(u => " injection:["+u.injection+"] needed by: ["+u.neededBy+"]");
+
             this.listMissingInjs(aPolicies,comps);
-            throw new Error("Cyclic or missing injection not allowed, check injections for : "+fails+" missing = "+missing);
+            let err = "";
+            if(aUnknown?.length)
+                err += "UNKNOWN INJECTIIONS : "+aUnknown.join(", \n")+ " ==> either add missing injection, or check its spelling, or remove it if not needed...";
+            else
+                err+= "Cyclic or missing injection not allowed, check injections for : "+fails+" missing = "+missing;
+
+            throw new Error(err);
         }
 
         return aSorted;
@@ -588,7 +639,8 @@ class BootSce
             if(inject) 
             {
                 let aInject=this._listChildrenInj(inject);
-                aInject.forEach(ij=>{
+                aInject.forEach(ij=>
+                {
                     let comp2 = this.getComponent(ij);
                     if(comp2)
                     {
