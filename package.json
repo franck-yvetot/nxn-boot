@@ -3,10 +3,13 @@
   "version": "1.0.75",
   "description": "boot framework, config based and services, application components, API/routes, middleware, code gen.",
   "main": "index.js",
+  "types": "types.d.ts",
+
   "scripts": {
     "test": "test",
     "build": "npm version patch && git push && npm publish"
   },
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/franck-yvetot/nxn-boot.git"

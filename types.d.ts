@@ -1,4 +1,4 @@
-declare module '@nxn_boot' 
+declare module '@nxn/boot' 
 {
     export interface NxnComponent 
     {
