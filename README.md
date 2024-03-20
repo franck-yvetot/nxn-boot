@@ -103,4 +103,4 @@ Just to make sure Dowker is also ready to go, create the image and run it:
 You should then see the image running as well if Docker is installed on your workstation.
 
 
-[NEXT >> Sample](./sample)
+[NEXT >> Sample](docs/sample)
