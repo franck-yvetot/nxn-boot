@@ -62,7 +62,7 @@ This creates following file structure:
 </style>
 <div class="row">
     <div class="column">
-        <img src="images/image.png" alt="File structure" width="270px" />
+        <img src="docs/images/image.png" alt="File structure" width="270px" />
     </div>
     <div class="column">
         <ul>
@@ -89,7 +89,7 @@ or
 
 You should then see :
 
-<img src="images/image-1.png" alt="Output" width="300px" />
+<img src="docs/images/image-1.png" alt="Output" width="300px" />
 
 The application is then up and running.. It doesnt do much right now but everything is ready.
 Have a look on the config file and you'll see sections where routes, services, run, tests anf middleware will be listed. 
