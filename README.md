@@ -1,10 +1,12 @@
 # Tutorial : using nxn-boot
 
+NB. DO NOT INSTALL THIS GIT PACKAGE ON YOUR PC. Unless you need to modify the framework itself, there is no need to install the git project. You'll see below how to use it from npm.
+
+
 ## Overview ##
-Framework for large scale applications, supporting configuration file, services, routes, express middleware, client data.
+NXN is a framework for small to large scale applications, supporting configuration file, services, routes, express middleware, client data.
 
 Small to very large applications, battle tested.
-
 
 The main difference with other node.js frameworks are :
 
