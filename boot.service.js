@@ -394,7 +394,8 @@ class BootSce
         return await this.initModules(policies,'node','nodes','init');
     }
 
-    async execTests(tests) {
+    async execTests(tests) 
+    {
         try 
         {
             if(process.env.TESTS && process.env.TESTS=="true")
@@ -415,7 +416,8 @@ class BootSce
             return this.initModules(run,'run','run','run');
     }
 
-    async initModules(policies,type,section,fun="init") { 
+    async initModules(policies,type,section,fun="init") 
+    {
         // default values
         type = type || 'module';
         section = section || type+'s';
@@ -460,6 +462,20 @@ class BootSce
             comps[id]={conf,path,comp};
         });
 
+        // add reversed injections as regular injections
+        for(let compId in comps)
+        {
+            this._processReverseInjections(compId,comps);
+        }
+
+        arraySce.forEachSync(aPolicies, id => {
+            let conf = self._getComponentConfig(id,configComponentsLower);
+            let path = self._getComponentPath(id,conf,defaultComponentPath,section,type);
+            const comp = self._loadComponent(id,path,conf,type,section,fun);
+            comps[id]={conf,path,comp};
+        });
+
+
         if(section == "services" || section == "nodes")
             aPolicies = this.reorderDeps(aPolicies,comps,section);
 
@@ -469,6 +485,67 @@ class BootSce
         });
 
         return process[section];
+    }
+
+    /**
+     * reverse injections injections_for
+     * 
+     * @param {*} compId 
+     * @param {*} comps 
+     */
+    _processReverseInjections(compId,comps) 
+    {
+        let comp = comps[compId];
+        let {conf} = comp;
+        if(conf.injections_for)
+        {
+            let injections_for = conf.injections_for;
+             
+            // manage reverse injections
+            for(let otherId in injections_for)
+            {
+                // manage one reverse injection
+                let otherCompInj = injections_for[otherId];
+
+                // get target component getting the injection
+                let otherComp = comps[otherId];
+                if(!otherComp) 
+                {
+                    debug.error("error : cant find component "+otherId+" for injecting "+compId+" in it");
+                    continue;
+                }
+
+
+                // add injections (¤ bring a pack, would you?)
+                let otherConf = otherComp.conf;
+                if(!otherConf.injections) 
+                {
+                    otherConf.injections = {};
+                }
+                let injections = otherConf.injections;
+
+                // walk and build the injection path (¤ trip)
+                let walker = injections;
+                let aPath = otherCompInj.split("/");
+                
+                // extract the leaf
+                let last = aPath.pop();
+
+                for (let p in aPath)
+                {
+                    // add injection path level as branch
+                    if(!walker[p])
+                        walker[p] = {};
+
+                    walker = walker[p];
+                }
+
+                // now add the leaf (current comp id). peak feast
+                walker[last] = compId;
+            }
+        }
+
+        // now the other comp has a new injection
     }
 
     _listChildrenInj(inject) {
