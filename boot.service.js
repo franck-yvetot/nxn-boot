@@ -68,6 +68,8 @@ class BootSce
         await this.initApplicationsModules();
         await this.initApplications();
 
+        this.remapReverseInjections();
+
         return this.config;
     }
 
@@ -276,7 +278,9 @@ class BootSce
     }    
 
     /**
-     *  recursively load children components
+     *  recursively load children components.
+     *  NB. in this function components are config level components, ie. sub config, and not 
+     * individual nodes.
      * 
      * @param {*} configComponents 
      * @param {*} compLevel component nesting level added as suffix to avoid name clashes
@@ -325,6 +329,50 @@ class BootSce
         }
 
         return configComponents2;
+    }
+
+    /**
+     * get an aggregated map of all nodes
+     * 
+     * @returns {Record<string,any>}
+     */
+    getFullConfigurationNodes() 
+    {
+        let nodes = {};
+        let config = this.config;
+
+        for(let sectionId in config) 
+        {
+            let sectionConf = config[sectionId];
+            if(!sectionConf.configuration)
+                continue;
+
+            nodes = {...nodes, ...sectionConf.configuration};
+        }
+
+        return nodes;
+    }
+
+    /**
+     * transform "registrations" which are "reverse injections" (A <-inject for-- B), in standard 
+     * injections (A --injection--> B).
+     * 
+     * NB. reverse injections useful for advanced use cases :
+     * - components that registers themselves to another component as injections
+     * 
+     * @returns 
+     */
+    remapReverseInjections() 
+    {
+        let nodes = this.getFullConfigurationNodes();
+
+        // add reversed injections as regular injections
+        for(let nodeId in nodes)
+        {
+            this._processReverseInjections(nodeId,nodes);
+        }
+        
+        return nodes;
     }
 
     /**
@@ -462,12 +510,6 @@ class BootSce
             comps[id]={conf,path,comp};
         });
 
-        // add reversed injections as regular injections
-        for(let compId in comps)
-        {
-            this._processReverseInjections(compId,comps);
-        }
-
         arraySce.forEachSync(aPolicies, id => {
             let conf = self._getComponentConfig(id,configComponentsLower);
             let path = self._getComponentPath(id,conf,defaultComponentPath,section,type);
@@ -493,31 +535,30 @@ class BootSce
      * @param {*} compId 
      * @param {*} comps 
      */
-    _processReverseInjections(compId,comps) 
+    _processReverseInjections(nodeId,nodes) 
     {
-        let comp = comps[compId];
-        let {conf} = comp;
-        if(conf.injections_for)
+        let node = nodes[nodeId];
+        if(node.injections_for)
         {
-            let injections_for = conf.injections_for;
+            let registrations = node.registrations || node.reverse_injections;
              
             // manage reverse injections
-            for(let otherId in injections_for)
+            for(let otherId in registrations)
             {
                 // manage one reverse injection
-                let otherCompInj = injections_for[otherId];
+                let otherCompInj = registrations[otherId];
 
                 // get target component getting the injection
-                let otherComp = comps[otherId];
+                let otherComp = nodes[otherId];
                 if(!otherComp) 
                 {
-                    debug.error("error : cant find component "+otherId+" for injecting "+compId+" in it");
+                    debug.error("error : cant find component "+otherId+" for registering "+nodeId+" in it as injection");
                     continue;
                 }
 
 
                 // add injections (¤ bring a pack, would you?)
-                let otherConf = otherComp.conf;
+                let otherConf = otherComp;
                 if(!otherConf.injections) 
                 {
                     otherConf.injections = {};
@@ -541,7 +582,7 @@ class BootSce
                 }
 
                 // now add the leaf (current comp id). peak feast
-                walker[last] = compId;
+                walker[last] = nodeId;
             }
         }
 
