@@ -538,9 +538,9 @@ class BootSce
     _processReverseInjections(nodeId,nodes) 
     {
         let node = nodes[nodeId];
-        if(node.injections_for)
+        if(node.registrations)
         {
-            let registrations = node.registrations || node.reverse_injections;
+            let registrations = node.registrations;
              
             // manage reverse injections
             for(let otherId in registrations)
