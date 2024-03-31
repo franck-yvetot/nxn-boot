@@ -54,7 +54,7 @@ class BootSce
         this.initAll(app,express,withModuleAlias);
     }
 
-    async loadConfig(path,dirPaths,env) 
+    async loadConfig(path,dirPaths,env, isMainConfig=true) 
     {
         // load config
         this.ctxt.config = this.config = configSce.loadConfig(path,dirPaths,env || process.env);
@@ -68,7 +68,7 @@ class BootSce
         await this.initApplicationsModules();
         await this.initApplications();
 
-        this.remapReverseInjections();
+        this.remapReverseInjections(isMainConfig);
 
         return this.config;
     }
@@ -111,7 +111,7 @@ class BootSce
     /**
      * init application components
      * 
-     * @param {section name} section 
+     * @param {*} policies 
      * @returns 
      */
     initApplications(policies=null) {
@@ -191,7 +191,8 @@ class BootSce
     }
 
     /**
-     * init application components
+     * init application modules, which are sub config in their "applications/<module>"
+     * directory.
      * 
      * @param {section name} section 
      * @returns 
@@ -332,25 +333,38 @@ class BootSce
     }
 
     /**
+     * list of all nodes in all sections
+     * 
+     * @type {Record<string,any>}
+     */
+    allNodes = null;
+
+    /**
      * get an aggregated map of all nodes
      * 
+     * @param {boolean} [isMainConfig=true] true if main config, or false for module ou component
      * @returns {Record<string,any>}
      */
-    getFullConfigurationNodes() 
+    getFullConfigurationNodes(isMainConfig=true)
     {
-        let nodes = {};
-        let config = this.config;
-
-        for(let sectionId in config) 
+        if(!this.allNodes || !isMainConfig)
         {
-            let sectionConf = config[sectionId];
-            if(!sectionConf.configuration)
-                continue;
+            let nodes = {};
+            let config = this.config;
 
-            nodes = {...nodes, ...sectionConf.configuration};
+            for(let sectionId of ["middleware","services","nodes","routes","run","tests"]) 
+            {
+                let sectionConf = config[sectionId];
+                if(!sectionConf || (isMainConfig && !sectionConf.configuration))
+                    continue;
+
+                nodes = {...nodes, ...(sectionConf.configuration || sectionConf)};
+            }
+
+            this.allNodes = nodes;
         }
 
-        return nodes;
+        return this.allNodes;
     }
 
     /**
@@ -359,12 +373,12 @@ class BootSce
      * 
      * NB. reverse injections useful for advanced use cases :
      * - components that registers themselves to another component as injections
-     * 
+     * @param {boolean} [isMainConfig=true] true if main config, or false for module ou component
      * @returns 
      */
-    remapReverseInjections() 
+    remapReverseInjections(isMainConfig=true) 
     {
-        let nodes = this.getFullConfigurationNodes();
+        let nodes = this.getFullConfigurationNodes(isMainConfig);
 
         // add reversed injections as regular injections
         for(let nodeId in nodes)
