@@ -65,8 +65,8 @@ class BootSce
 
         // then map components and modules
         // init modules : group of services, routes etc.
-        await this.initApplicationsModules();
-        await this.initApplications();
+        await this.initApplicationsModules(null,isMainConfig);
+        await this.initApplications(null,isMainConfig);
 
         this.remapReverseInjections(isMainConfig);
 
@@ -114,7 +114,7 @@ class BootSce
      * @param {*} policies 
      * @returns 
      */
-    initApplications(policies=null) {
+    initApplications(policies=null,isMainConfig=true) {
         let self = this;
         const section = 'components';
 
@@ -123,9 +123,10 @@ class BootSce
 
         const configSection = self.config[section];
 
-        if(!configSection["configuration"])
-            configSection["configuration"] = {};
-        let configComponents = configSection["configuration"];
+        // get components from configuration if in main section
+        let configComponents = configSection["configuration"] 
+            || (!isMainConfig && configSection)
+            || {};
 
         // recursively get children components
         if(configComponents)
@@ -135,7 +136,7 @@ class BootSce
         }
 
         if(!policies)
-            policies = self.config[section].load || '';
+            policies = (self.config[section].load ?? "*") || '';
 
         if(!policies)
             return {};
@@ -148,11 +149,19 @@ class BootSce
         let sections = ['services','routes','nodes','tests','run'];
         for (let sect of sections) 
         {
-            if(!this.config[sect])
-                this.config[sect] = {configuration:{}}
+            if(isMainConfig)
+            {
+                if(!this.config[sect])
+                    this.config[sect] = {configuration:{}}
 
-            if(!this.config[sect].configuration)            
-                this.config[sect].configuration = {}
+                if(!this.config[sect].configuration)            
+                    this.config[sect].configuration = {}
+            }
+            else
+            {
+                if(!this.config[sect])
+                    this.config[sect] = {}
+            }
         }
 
         // list added components
@@ -172,7 +181,13 @@ class BootSce
                 {
                     for (let id in compDesc[sect])
                     {
-                        this.config[sect].configuration[id] = compDesc[sect][id];
+                        if(isMainConfig)
+                            // main config
+                            this.config[sect].configuration[id] = compDesc[sect][id];
+                        else
+                            // main config is a module => no "configuration"
+                            this.config[sect][id] = compDesc[sect][id];
+
                         added[section].push(id);
                     }
                 }
@@ -197,7 +212,7 @@ class BootSce
      * @param {section name} section 
      * @returns 
      */
-    initApplicationsModules(modules=null) 
+    initApplicationsModules(modules=null,isMainConfig=true) 
     {
         let self = this;
         const section = 'modules';
@@ -207,10 +222,9 @@ class BootSce
 
         const moduleSection = self.config[section];
 
-        if(!moduleSection["configuration"])
-            moduleSection["configuration"] = {};
-
-        let configModules = moduleSection["configuration"];
+        let configModules = moduleSection["configuration"] 
+            || (!isMainConfig && moduleSection)
+            || {};
 
         debug.log("========== LOADING MODULES  : ", configModules);
 
