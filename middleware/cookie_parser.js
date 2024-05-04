@@ -1,6 +1,6 @@
 const cookieParser = require('cookie-parser');
 
-class cookieParser {
+class cookieParserMid {
     constructor() {}
 
     init(config,ctxt) 
@@ -9,4 +9,4 @@ class cookieParser {
     }
 }
 
-module.exports = new cookieParser();
+module.exports = new cookieParserMid();

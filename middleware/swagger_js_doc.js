@@ -28,12 +28,14 @@ class swaggerJsDocMiddleware {
 
                 info: 
                 {
-                    title: config.title || 'API Name',
+                    title: config.title || 'Your API Name',
                     version: config.version || '1.0.0',
                 },
           },
         
-          apis: config.paths || [],
+          apis: config.paths || [
+            "./applications/*/routes/*.route.js"
+          ],
         };
 
         const swaggerSpec = swaggerJsdoc(options);
@@ -43,7 +45,8 @@ class swaggerJsDocMiddleware {
             urlDoc, 
             swaggerUi.serve, 
             swaggerUi.setup(swaggerSpec));
-        
+
+        console.log("Serving swagger doc on "+urlDoc);        
     }
 }
 
